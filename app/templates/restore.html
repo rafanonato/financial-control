@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card shadow">
+            <div class="card-body">
+                <h2 class="card-title">Restaurar Backup</h2>
+                <p class="card-text">
+                    Restaure seus dados financeiros a partir de um arquivo de backup.
+                </p>
+                
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <strong>Atenção:</strong> A restauração de um backup substituirá todos os dados atuais. 
+                    Certifique-se de fazer um backup dos seus dados atuais antes de restaurar.
+                </div>
+                
+                <form action="{{ url_for('restore') }}" method="POST" enctype="multipart/form-data" class="mt-4">
+                    <div class="mb-3">
+                        <label for="file" class="form-label">Selecione um arquivo de backup (.db)</label>
+                        <input class="form-control" type="file" id="file" name="file" accept=".db" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-upload me-1"></i> Restaurar Backup
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card shadow h-100">
+            <div class="card-body">
+                <h4 class="card-title">O que acontece durante a restauração?</h4>
+                <p>
+                    Ao restaurar um backup:
+                </p>
+                <ul>
+                    <li>Todos os dados atuais serão substituídos pelos dados do backup</li>
+                    <li>Todas as suas categorias, transações e metas serão restauradas</li>
+                    <li>A aplicação será reiniciada para aplicar as alterações</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card shadow h-100">
+            <div class="card-body">
+                <h4 class="card-title">Não tem um backup?</h4>
+                <p>
+                    Se você não tem um arquivo de backup, você pode:
+                </p>
+                <ul>
+                    <li>Criar um novo backup agora na página <a href="{{ url_for('backup') }}">Backup de Dados</a></li>
+                    <li>Continuar usando o aplicativo com os dados atuais</li>
+                    <li>Começar do zero importando novos dados</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

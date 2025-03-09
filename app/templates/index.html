@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card shadow">
+            <div class="card-body text-center">
+                <h1 class="display-4 mb-4">Bem-vindo ao seu Controle Financeiro</h1>
+                <p class="lead">
+                    Gerencie suas finanças pessoais com facilidade, visualize seus gastos e receitas, 
+                    e acompanhe suas metas financeiras.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-4 mb-3">
+        <div class="card shadow h-100">
+            <div class="card-body text-center">
+                <i class="fas fa-chart-pie fa-4x text-primary mb-3"></i>
+                <h3>Dashboard Mensal</h3>
+                <p>Visualize seus gastos e receitas do mês atual com gráficos interativos.</p>
+                <a href="{{ url_for('monthly_dashboard') }}" class="btn btn-primary">
+                    Ver Dashboard Mensal
+                </a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-3">
+        <div class="card shadow h-100">
+            <div class="card-body text-center">
+                <i class="fas fa-chart-line fa-4x text-success mb-3"></i>
+                <h3>Dashboard Anual</h3>
+                <p>Acompanhe a evolução das suas finanças ao longo do ano.</p>
+                <a href="{{ url_for('yearly_dashboard') }}" class="btn btn-success">
+                    Ver Dashboard Anual
+                </a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-3">
+        <div class="card shadow h-100">
+            <div class="card-body text-center">
+                <i class="fas fa-exchange-alt fa-4x text-info mb-3"></i>
+                <h3>Gerenciar Transações</h3>
+                <p>Adicione, edite e visualize suas transações financeiras.</p>
+                <a href="{{ url_for('transactions') }}" class="btn btn-info">
+                    Gerenciar Transações
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6 mb-3">
+        <div class="card shadow h-100">
+            <div class="card-body text-center">
+                <i class="fas fa-file-import fa-4x text-warning mb-3"></i>
+                <h3>Importar Dados</h3>
+                <p>Importe seus dados financeiros de arquivos Excel ou CSV.</p>
+                <a href="{{ url_for('import_data') }}" class="btn btn-warning">
+                    Importar Dados
+                </a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6 mb-3">
+        <div class="card shadow h-100">
+            <div class="card-body text-center">
+                <i class="fas fa-bullseye fa-4x text-danger mb-3"></i>
+                <h3>Definir Metas</h3>
+                <p>Estabeleça e acompanhe suas metas financeiras.</p>
+                <a href="{{ url_for('goals') }}" class="btn btn-danger">
+                    Gerenciar Metas
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Adicionar data atual ao contexto
+    document.addEventListener('DOMContentLoaded', function() {
+        // Destacar o menu ativo
+        const currentPath = window.location.pathname;
+        const navLinks = document.querySelectorAll('.nav-link');
+        
+        navLinks.forEach(link => {
+            if (link.getAttribute('href') === currentPath) {
+                link.classList.add('active');
+            }
+        });
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card shadow">
+            <div class="card-body">
+                <h2 class="card-title">Importar Dados</h2>
+                <p class="card-text">
+                    Importe seus dados financeiros de arquivos Excel ou CSV. 
+                    O sistema irá guiá-lo pelo processo de mapeamento das colunas.
+                </p>
+                
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <strong>Dica:</strong> Certifique-se de que seu arquivo contenha pelo menos colunas para data, descrição e valor.
+                </div>
+                
+                <form action="{{ url_for('import_data') }}" method="POST" enctype="multipart/form-data" class="mt-4">
+                    <div class="mb-3">
+                        <label for="file" class="form-label">Selecione um arquivo Excel ou CSV</label>
+                        <input class="form-control" type="file" id="file" name="file" accept=".csv, .xlsx, .xls" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-upload me-1"></i> Enviar Arquivo
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card shadow h-100">
+            <div class="card-body">
+                <h4 class="card-title">Formato Esperado</h4>
+                <p>Seu arquivo deve conter pelo menos as seguintes colunas:</p>
+                <ul>
+                    <li><strong>Data:</strong> Data da transação (ex: 01/01/2023)</li>
+                    <li><strong>Descrição:</strong> Descrição da transação</li>
+                    <li><strong>Valor:</strong> Valor da transação (use valores negativos para despesas)</li>
+                </ul>
+                <p>Opcionalmente, você pode incluir:</p>
+                <ul>
+                    <li><strong>Categoria:</strong> Nome da categoria da transação</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card shadow h-100">
+            <div class="card-body">
+                <h4 class="card-title">Exemplo de Arquivo</h4>
+                <div class="table-responsive">
+                    <table class="table table-sm table-bordered">
+                        <thead>
+                            <tr>
+                                <th>Data</th>
+                                <th>Descrição</th>
+                                <th>Valor</th>
+                                <th>Categoria</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>01/01/2023</td>
+                                <td>Salário</td>
+                                <td>5000.00</td>
+                                <td>Receita</td>
+                            </tr>
+                            <tr>
+                                <td>05/01/2023</td>
+                                <td>Aluguel</td>
+                                <td>-1500.00</td>
+                                <td>Moradia</td>
+                            </tr>
+                            <tr>
+                                <td>10/01/2023</td>
+                                <td>Supermercado</td>
+                                <td>-450.00</td>
+                                <td>Alimentação</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

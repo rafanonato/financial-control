@@ -1,0 +1,263 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card shadow">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h2 class="card-title">Gerenciar Metas</h2>
+                    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addGoalModal">
+                        <i class="fas fa-plus me-1"></i> Nova Meta
+                    </button>
+                </div>
+                
+                <!-- Cards de metas -->
+                <div class="row">
+                    {% for g in goals %}
+                    <div class="col-md-4 mb-4">
+                        <div class="card h-100 {% if g.progress >= 100 %}border-success{% endif %}">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <h5 class="card-title mb-0">{{ g.name }}</h5>
+                                <div>
+                                    <button class="btn btn-sm btn-outline-primary edit-btn" 
+                                            data-id="{{ g.id }}"
+                                            data-name="{{ g.name }}"
+                                            data-target="{{ g.target_amount }}"
+                                            data-current="{{ g.current_amount }}"
+                                            data-category="{{ g.category_id }}"
+                                            data-start="{{ g.start_date }}"
+                                            data-end="{{ g.end_date }}"
+                                            data-bs-toggle="modal" 
+                                            data-bs-target="#editGoalModal">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-danger delete-btn"
+                                            data-id="{{ g.id }}"
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#deleteGoalModal">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <p class="card-text">
+                                    <strong>Meta:</strong> R$ {{ "%.2f"|format(g.target_amount) }}<br>
+                                    <strong>Atual:</strong> R$ {{ "%.2f"|format(g.current_amount) }}<br>
+                                    {% if g.category_name %}
+                                    <strong>Categoria:</strong> {{ g.category_name }}<br>
+                                    {% endif %}
+                                    <strong>Início:</strong> {{ g.start_date }}<br>
+                                    {% if g.end_date %}
+                                    <strong>Fim:</strong> {{ g.end_date }}<br>
+                                    {% endif %}
+                                </p>
+                                
+                                <div class="progress mt-3">
+                                    <div class="progress-bar {% if g.progress >= 100 %}bg-success{% endif %}" 
+                                         role="progressbar" 
+                                         style="width: {{ g.progress }}%;" 
+                                         aria-valuenow="{{ g.progress }}" 
+                                         aria-valuemin="0" 
+                                         aria-valuemax="100">
+                                        {{ "%.1f"|format(g.progress) }}%
+                                    </div>
+                                </div>
+                            </div>
+                            {% if g.progress >= 100 %}
+                            <div class="card-footer bg-success text-white">
+                                <i class="fas fa-check-circle me-1"></i> Meta atingida!
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="col-12">
+                        <div class="alert alert-info">
+                            Nenhuma meta encontrada. Clique em "Nova Meta" para criar sua primeira meta financeira.
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para adicionar meta -->
+<div class="modal fade" id="addGoalModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Nova Meta</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="{{ url_for('add_goal') }}" method="POST">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Nome da Meta</label>
+                        <input type="text" class="form-control" id="name" name="name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="target_amount" class="form-label">Valor Alvo</label>
+                        <div class="input-group">
+                            <span class="input-group-text">R$</span>
+                            <input type="number" class="form-control" id="target_amount" name="target_amount" step="0.01" min="0.01" required>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="current_amount" class="form-label">Valor Atual</label>
+                        <div class="input-group">
+                            <span class="input-group-text">R$</span>
+                            <input type="number" class="form-control" id="current_amount" name="current_amount" step="0.01" min="0" value="0">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="category_id" class="form-label">Categoria (opcional)</label>
+                        <select class="form-select" id="category_id" name="category_id">
+                            <option value="">Selecione uma categoria</option>
+                            {% for c in categories %}
+                            <option value="{{ c.id }}">{{ c.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="start_date" class="form-label">Data de Início</label>
+                        <input type="date" class="form-control" id="start_date" name="start_date" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="end_date" class="form-label">Data de Término (opcional)</label>
+                        <input type="date" class="form-control" id="end_date" name="end_date">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para editar meta -->
+<div class="modal fade" id="editGoalModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Editar Meta</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="editForm" action="" method="POST">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="edit_name" class="form-label">Nome da Meta</label>
+                        <input type="text" class="form-control" id="edit_name" name="name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_target_amount" class="form-label">Valor Alvo</label>
+                        <div class="input-group">
+                            <span class="input-group-text">R$</span>
+                            <input type="number" class="form-control" id="edit_target_amount" name="target_amount" step="0.01" min="0.01" required>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_current_amount" class="form-label">Valor Atual</label>
+                        <div class="input-group">
+                            <span class="input-group-text">R$</span>
+                            <input type="number" class="form-control" id="edit_current_amount" name="current_amount" step="0.01" min="0">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_category_id" class="form-label">Categoria (opcional)</label>
+                        <select class="form-select" id="edit_category_id" name="category_id">
+                            <option value="">Selecione uma categoria</option>
+                            {% for c in categories %}
+                            <option value="{{ c.id }}">{{ c.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_start_date" class="form-label">Data de Início</label>
+                        <input type="date" class="form-control" id="edit_start_date" name="start_date" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_end_date" class="form-label">Data de Término (opcional)</label>
+                        <input type="date" class="form-control" id="edit_end_date" name="end_date">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para confirmar exclusão -->
+<div class="modal fade" id="deleteGoalModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirmar Exclusão</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Tem certeza que deseja excluir esta meta?</p>
+                <p>Esta ação não pode ser desfeita.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <form id="deleteForm" action="" method="POST">
+                    <button type="submit" class="btn btn-danger">Excluir</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Configurar modal de edição
+        const editButtons = document.querySelectorAll('.edit-btn');
+        const editForm = document.getElementById('editForm');
+        
+        editButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                const id = this.getAttribute('data-id');
+                const name = this.getAttribute('data-name');
+                const target = this.getAttribute('data-target');
+                const current = this.getAttribute('data-current');
+                const category = this.getAttribute('data-category');
+                const start = this.getAttribute('data-start');
+                const end = this.getAttribute('data-end');
+                
+                editForm.action = `{{ url_for('edit_goal', id=0) }}`.replace('0', id);
+                document.getElementById('edit_name').value = name;
+                document.getElementById('edit_target_amount').value = target;
+                document.getElementById('edit_current_amount').value = current;
+                document.getElementById('edit_category_id').value = category || '';
+                document.getElementById('edit_start_date').value = start;
+                document.getElementById('edit_end_date').value = end || '';
+            });
+        });
+        
+        // Configurar modal de exclusão
+        const deleteButtons = document.querySelectorAll('.delete-btn');
+        const deleteForm = document.getElementById('deleteForm');
+        
+        deleteButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                const id = this.getAttribute('data-id');
+                deleteForm.action = `{{ url_for('delete_goal', id=0) }}`.replace('0', id);
+            });
+        });
+        
+        // Definir data padrão para hoje
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('start_date').value = today;
+    });
+</script>
+{% endblock %}

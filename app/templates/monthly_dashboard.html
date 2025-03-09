@@ -1,0 +1,178 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card shadow">
+            <div class="card-body">
+                <h2 class="card-title">Dashboard Mensal</h2>
+                
+                <!-- Seletor de mês e ano -->
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <form id="dateForm" class="d-flex">
+                            <select id="monthSelect" name="month" class="form-select me-2">
+                                <option value="1" {% if month == 1 %}selected{% endif %}>Janeiro</option>
+                                <option value="2" {% if month == 2 %}selected{% endif %}>Fevereiro</option>
+                                <option value="3" {% if month == 3 %}selected{% endif %}>Março</option>
+                                <option value="4" {% if month == 4 %}selected{% endif %}>Abril</option>
+                                <option value="5" {% if month == 5 %}selected{% endif %}>Maio</option>
+                                <option value="6" {% if month == 6 %}selected{% endif %}>Junho</option>
+                                <option value="7" {% if month == 7 %}selected{% endif %}>Julho</option>
+                                <option value="8" {% if month == 8 %}selected{% endif %}>Agosto</option>
+                                <option value="9" {% if month == 9 %}selected{% endif %}>Setembro</option>
+                                <option value="10" {% if month == 10 %}selected{% endif %}>Outubro</option>
+                                <option value="11" {% if month == 11 %}selected{% endif %}>Novembro</option>
+                                <option value="12" {% if month == 12 %}selected{% endif %}>Dezembro</option>
+                            </select>
+                            <select id="yearSelect" name="year" class="form-select me-2">
+                                {% for y in range(2020, 2031) %}
+                                <option value="{{ y }}" {% if year == y %}selected{% endif %}>{{ y }}</option>
+                                {% endfor %}
+                            </select>
+                            <button type="submit" class="btn btn-primary">Atualizar</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Indicadores principais -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card shadow h-100">
+            <div class="card-body">
+                <h4 class="card-title">Saldo Mensal</h4>
+                <div id="balanceChart" style="height: 250px;"></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card shadow h-100">
+            <div class="card-body">
+                <h4 class="card-title">Taxa de Poupança</h4>
+                <div id="savingRateChart" style="height: 250px;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Gráficos de despesas e receitas -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card shadow h-100">
+            <div class="card-body">
+                <h4 class="card-title">Despesas por Categoria</h4>
+                <div id="expensesChart" style="height: 300px;"></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card shadow h-100">
+            <div class="card-body">
+                <h4 class="card-title">Receitas por Categoria</h4>
+                <div id="incomeChart" style="height: 300px;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Evolução diária -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card shadow">
+            <div class="card-body">
+                <h4 class="card-title">Evolução Diária</h4>
+                <div id="dailyChart" style="height: 300px;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tabela de transações -->
+<div class="row">
+    <div class="col-12">
+        <div class="card shadow">
+            <div class="card-body">
+                <h4 class="card-title">Transações do Mês</h4>
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover">
+                        <thead>
+                            <tr>
+                                <th>Data</th>
+                                <th>Descrição</th>
+                                <th>Categoria</th>
+                                <th>Valor</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for t in transactions %}
+                            <tr>
+                                <td>{{ t.date }}</td>
+                                <td>{{ t.description }}</td>
+                                <td>{{ t.category_name }}</td>
+                                <td class="{% if t.amount < 0 %}text-danger{% else %}text-success{% endif %}">
+                                    R$ {{ "%.2f"|format(t.amount) }}
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="4" class="text-center">Nenhuma transação encontrada para este mês.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Atualizar dashboard quando o formulário for enviado
+        const dateForm = document.getElementById('dateForm');
+        dateForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const month = document.getElementById('monthSelect').value;
+            const year = document.getElementById('yearSelect').value;
+            window.location.href = `{{ url_for('monthly_dashboard') }}?month=${month}&year=${year}`;
+        });
+        
+        // Renderizar gráficos
+        {% if charts.pie_expenses != '{}' %}
+        Plotly.newPlot('expensesChart', JSON.parse('{{ charts.pie_expenses|safe }}').data, JSON.parse('{{ charts.pie_expenses|safe }}').layout);
+        {% else %}
+        document.getElementById('expensesChart').innerHTML = '<div class="alert alert-info">Nenhuma despesa registrada neste mês.</div>';
+        {% endif %}
+        
+        {% if charts.pie_income != '{}' %}
+        Plotly.newPlot('incomeChart', JSON.parse('{{ charts.pie_income|safe }}').data, JSON.parse('{{ charts.pie_income|safe }}').layout);
+        {% else %}
+        document.getElementById('incomeChart').innerHTML = '<div class="alert alert-info">Nenhuma receita registrada neste mês.</div>';
+        {% endif %}
+        
+        {% if charts.bar_daily != '{}' %}
+        Plotly.newPlot('dailyChart', JSON.parse('{{ charts.bar_daily|safe }}').data, JSON.parse('{{ charts.bar_daily|safe }}').layout);
+        {% else %}
+        document.getElementById('dailyChart').innerHTML = '<div class="alert alert-info">Nenhuma transação registrada neste mês.</div>';
+        {% endif %}
+        
+        {% if charts.balance != '{}' %}
+        Plotly.newPlot('balanceChart', JSON.parse('{{ charts.balance|safe }}').data, JSON.parse('{{ charts.balance|safe }}').layout);
+        {% else %}
+        document.getElementById('balanceChart').innerHTML = '<div class="alert alert-info">Nenhuma transação registrada neste mês.</div>';
+        {% endif %}
+        
+        {% if charts.saving_rate != '{}' %}
+        Plotly.newPlot('savingRateChart', JSON.parse('{{ charts.saving_rate|safe }}').data, JSON.parse('{{ charts.saving_rate|safe }}').layout);
+        {% else %}
+        document.getElementById('savingRateChart').innerHTML = '<div class="alert alert-info">Nenhuma transação registrada neste mês.</div>';
+        {% endif %}
+    });
+</script>
+{% endblock %}

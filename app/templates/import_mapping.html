@@ -1,0 +1,198 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card shadow">
+            <div class="card-body">
+                <h2 class="card-title">Mapear Colunas</h2>
+                <p class="card-text">
+                    Selecione as colunas do seu arquivo que correspondem aos campos necessários.
+                </p>
+                
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <strong>Arquivo:</strong> {{ filename }}
+                </div>
+                
+                <form action="{{ url_for('process_import') }}" method="POST" class="mt-4">
+                    <input type="hidden" name="filename" value="{{ filename }}">
+                    <input type="hidden" name="filetype" value="{{ filetype }}">
+                    
+                    <div class="mb-3">
+                        <label for="date_column" class="form-label">Coluna de Data</label>
+                        <select class="form-select" id="date_column" name="date_column" required>
+                            <option value="" selected disabled>Selecione a coluna</option>
+                            <!-- As opções serão preenchidas via JavaScript -->
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="description_column" class="form-label">Coluna de Descrição</label>
+                        <select class="form-select" id="description_column" name="description_column" required>
+                            <option value="" selected disabled>Selecione a coluna</option>
+                            <!-- As opções serão preenchidas via JavaScript -->
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="amount_column" class="form-label">Coluna de Valor</label>
+                        <select class="form-select" id="amount_column" name="amount_column" required>
+                            <option value="" selected disabled>Selecione a coluna</option>
+                            <!-- As opções serão preenchidas via JavaScript -->
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="category_column" class="form-label">Coluna de Categoria (opcional)</label>
+                        <select class="form-select" id="category_column" name="category_column">
+                            <option value="" selected>Nenhuma</option>
+                            <!-- As opções serão preenchidas via JavaScript -->
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="has_header" checked>
+                            <label class="form-check-label" for="has_header">
+                                O arquivo possui cabeçalho
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <h5>Prévia dos Dados</h5>
+                        <div class="table-responsive">
+                            <table class="table table-sm table-bordered" id="preview-table">
+                                <thead>
+                                    <tr id="header-row">
+                                        <!-- Os cabeçalhos serão preenchidos via JavaScript -->
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- Os dados serão preenchidos via JavaScript -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('import_data') }}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left me-1"></i> Voltar
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-check me-1"></i> Confirmar e Importar
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Função para carregar a prévia do arquivo
+        function loadFilePreview() {
+            const filename = "{{ filename }}";
+            const filetype = "{{ filetype }}";
+            const hasHeader = document.getElementById('has_header').checked;
+            
+            fetch(`/api/file-preview?filename=${filename}&filetype=${filetype}&has_header=${hasHeader}`)
+                .then(response => response.json())
+                .then(data => {
+                    // Preencher as opções dos selects
+                    const columns = data.columns;
+                    const selects = [
+                        document.getElementById('date_column'),
+                        document.getElementById('description_column'),
+                        document.getElementById('amount_column'),
+                        document.getElementById('category_column')
+                    ];
+                    
+                    // Limpar opções existentes (exceto a primeira)
+                    selects.forEach(select => {
+                        const defaultOption = select.options[0];
+                        select.innerHTML = '';
+                        select.appendChild(defaultOption);
+                    });
+                    
+                    // Adicionar novas opções
+                    columns.forEach(column => {
+                        selects.forEach(select => {
+                            const option = document.createElement('option');
+                            option.value = column;
+                            option.textContent = column;
+                            select.appendChild(option);
+                        });
+                    });
+                    
+                    // Tentar fazer um mapeamento automático baseado em nomes comuns
+                    const dateColumns = ['data', 'date', 'dt', 'dia'];
+                    const descColumns = ['descricao', 'descrição', 'description', 'desc'];
+                    const amountColumns = ['valor', 'value', 'amount', 'quantia', 'price', 'preco', 'preço'];
+                    const categoryColumns = ['categoria', 'category', 'tipo', 'type'];
+                    
+                    columns.forEach(column => {
+                        const lowerColumn = column.toLowerCase();
+                        
+                        if (dateColumns.some(dc => lowerColumn.includes(dc))) {
+                            document.getElementById('date_column').value = column;
+                        }
+                        
+                        if (descColumns.some(dc => lowerColumn.includes(dc))) {
+                            document.getElementById('description_column').value = column;
+                        }
+                        
+                        if (amountColumns.some(ac => lowerColumn.includes(ac))) {
+                            document.getElementById('amount_column').value = column;
+                        }
+                        
+                        if (categoryColumns.some(cc => lowerColumn.includes(cc))) {
+                            document.getElementById('category_column').value = column;
+                        }
+                    });
+                    
+                    // Preencher a tabela de prévia
+                    const headerRow = document.getElementById('header-row');
+                    const previewTable = document.getElementById('preview-table');
+                    const tbody = previewTable.querySelector('tbody');
+                    
+                    // Limpar tabela
+                    headerRow.innerHTML = '';
+                    tbody.innerHTML = '';
+                    
+                    // Adicionar cabeçalhos
+                    columns.forEach(column => {
+                        const th = document.createElement('th');
+                        th.textContent = column;
+                        headerRow.appendChild(th);
+                    });
+                    
+                    // Adicionar linhas de dados
+                    data.preview.forEach(row => {
+                        const tr = document.createElement('tr');
+                        columns.forEach(column => {
+                            const td = document.createElement('td');
+                            td.textContent = row[column] !== undefined ? row[column] : '';
+                            tr.appendChild(td);
+                        });
+                        tbody.appendChild(tr);
+                    });
+                })
+                .catch(error => {
+                    console.error('Erro ao carregar prévia do arquivo:', error);
+                    alert('Erro ao carregar prévia do arquivo. Por favor, tente novamente.');
+                });
+        }
+        
+        // Carregar prévia inicial
+        loadFilePreview();
+        
+        // Recarregar quando o checkbox de cabeçalho mudar
+        document.getElementById('has_header').addEventListener('change', loadFilePreview);
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card shadow">
+            <div class="card-body">
+                <h2 class="card-title">Dashboard Anual</h2>
+                
+                <!-- Seletor de ano -->
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <form id="yearForm" class="d-flex">
+                            <select id="yearSelect" name="year" class="form-select me-2">
+                                {% for y in range(2020, 2031) %}
+                                <option value="{{ y }}" {% if year == y %}selected{% endif %}>{{ y }}</option>
+                                {% endfor %}
+                            </select>
+                            <button type="submit" class="btn btn-primary">Atualizar</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Evolução mensal -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card shadow">
+            <div class="card-body">
+                <h4 class="card-title">Evolução Mensal</h4>
+                <div id="monthlyChart" style="height: 400px;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Categorias -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card shadow">
+            <div class="card-body">
+                <h4 class="card-title">Total por Categoria</h4>
+                <div id="categoriesChart" style="height: 400px;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Heatmap de categorias por mês -->
+<div class="row">
+    <div class="col-12">
+        <div class="card shadow">
+            <div class="card-body">
+                <h4 class="card-title">Categorias por Mês</h4>
+                <div id="heatmapChart" style="height: 500px;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Atualizar dashboard quando o formulário for enviado
+        const yearForm = document.getElementById('yearForm');
+        yearForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const year = document.getElementById('yearSelect').value;
+            window.location.href = `{{ url_for('yearly_dashboard') }}?year=${year}`;
+        });
+        
+        // Renderizar gráficos
+        {% if charts.line_monthly != '{}' %}
+        Plotly.newPlot('monthlyChart', JSON.parse('{{ charts.line_monthly|safe }}').data, JSON.parse('{{ charts.line_monthly|safe }}').layout);
+        {% else %}
+        document.getElementById('monthlyChart').innerHTML = '<div class="alert alert-info">Nenhuma transação registrada neste ano.</div>';
+        {% endif %}
+        
+        {% if charts.bar_categories != '{}' %}
+        Plotly.newPlot('categoriesChart', JSON.parse('{{ charts.bar_categories|safe }}').data, JSON.parse('{{ charts.bar_categories|safe }}').layout);
+        {% else %}
+        document.getElementById('categoriesChart').innerHTML = '<div class="alert alert-info">Nenhuma transação registrada neste ano.</div>';
+        {% endif %}
+        
+        {% if charts.heatmap_categories != '{}' %}
+        Plotly.newPlot('heatmapChart', JSON.parse('{{ charts.heatmap_categories|safe }}').data, JSON.parse('{{ charts.heatmap_categories|safe }}').layout);
+        {% else %}
+        document.getElementById('heatmapChart').innerHTML = '<div class="alert alert-info">Nenhuma transação registrada neste ano.</div>';
+        {% endif %}
+    });
+</script>
+{% endblock %}

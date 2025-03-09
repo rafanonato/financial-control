@@ -1,0 +1,311 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card shadow">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h2 class="card-title">Gerenciar Transações</h2>
+                    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addTransactionModal">
+                        <i class="fas fa-plus me-1"></i> Nova Transação
+                    </button>
+                </div>
+                
+                <!-- Seletor de mês e ano -->
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <form id="dateForm" class="d-flex">
+                            <select id="monthSelect" name="month" class="form-select me-2">
+                                <option value="1" {% if month == 1 %}selected{% endif %}>Janeiro</option>
+                                <option value="2" {% if month == 2 %}selected{% endif %}>Fevereiro</option>
+                                <option value="3" {% if month == 3 %}selected{% endif %}>Março</option>
+                                <option value="4" {% if month == 4 %}selected{% endif %}>Abril</option>
+                                <option value="5" {% if month == 5 %}selected{% endif %}>Maio</option>
+                                <option value="6" {% if month == 6 %}selected{% endif %}>Junho</option>
+                                <option value="7" {% if month == 7 %}selected{% endif %}>Julho</option>
+                                <option value="8" {% if month == 8 %}selected{% endif %}>Agosto</option>
+                                <option value="9" {% if month == 9 %}selected{% endif %}>Setembro</option>
+                                <option value="10" {% if month == 10 %}selected{% endif %}>Outubro</option>
+                                <option value="11" {% if month == 11 %}selected{% endif %}>Novembro</option>
+                                <option value="12" {% if month == 12 %}selected{% endif %}>Dezembro</option>
+                            </select>
+                            <select id="yearSelect" name="year" class="form-select me-2">
+                                {% for y in range(2020, 2031) %}
+                                <option value="{{ y }}" {% if year == y %}selected{% endif %}>{{ y }}</option>
+                                {% endfor %}
+                            </select>
+                            <button type="submit" class="btn btn-primary">Filtrar</button>
+                        </form>
+                    </div>
+                </div>
+                
+                <!-- Tabela de transações -->
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover">
+                        <thead>
+                            <tr>
+                                <th>Data</th>
+                                <th>Descrição</th>
+                                <th>Categoria</th>
+                                <th>Valor</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for t in transactions %}
+                            <tr>
+                                <td>{{ t.date }}</td>
+                                <td>{{ t.description }}</td>
+                                <td>{{ t.category_name }}</td>
+                                <td class="{% if t.amount < 0 %}text-danger{% else %}text-success{% endif %}">
+                                    R$ {{ "%.2f"|format(t.amount) }}
+                                </td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-primary edit-btn" 
+                                            data-id="{{ t.id }}"
+                                            data-date="{{ t.date }}"
+                                            data-description="{{ t.description }}"
+                                            data-amount="{{ t.amount }}"
+                                            data-category="{{ t.category_id }}"
+                                            data-recurring="{{ t.recurring }}"
+                                            data-recurring-period="{{ t.recurring_period }}"
+                                            data-bs-toggle="modal" 
+                                            data-bs-target="#editTransactionModal">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-danger delete-btn"
+                                            data-id="{{ t.id }}"
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#deleteTransactionModal">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="5" class="text-center">Nenhuma transação encontrada para este mês.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para adicionar transação -->
+<div class="modal fade" id="addTransactionModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Nova Transação</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="{{ url_for('add_transaction') }}" method="POST">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="date" class="form-label">Data</label>
+                        <input type="date" class="form-control" id="date" name="date" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Descrição</label>
+                        <input type="text" class="form-control" id="description" name="description" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="amount" class="form-label">Valor</label>
+                        <div class="input-group">
+                            <span class="input-group-text">R$</span>
+                            <input type="number" class="form-control" id="amount" name="amount" step="0.01" required>
+                        </div>
+                        <small class="form-text text-muted">Use valores negativos para despesas e positivos para receitas.</small>
+                    </div>
+                    <div class="mb-3">
+                        <label for="category_id" class="form-label">Categoria</label>
+                        <select class="form-select" id="category_id" name="category_id" required>
+                            {% for c in categories %}
+                            <option value="{{ c.id }}">{{ c.name }} ({{ c.type }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" id="recurring" name="recurring">
+                        <label class="form-check-label" for="recurring">Transação Recorrente</label>
+                    </div>
+                    <div class="mb-3 recurring-options d-none">
+                        <label for="recurring_period" class="form-label">Periodicidade</label>
+                        <select class="form-select" id="recurring_period" name="recurring_period">
+                            <option value="monthly">Mensal</option>
+                            <option value="yearly">Anual</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para editar transação -->
+<div class="modal fade" id="editTransactionModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Editar Transação</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="editForm" action="" method="POST">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="edit_date" class="form-label">Data</label>
+                        <input type="date" class="form-control" id="edit_date" name="date" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_description" class="form-label">Descrição</label>
+                        <input type="text" class="form-control" id="edit_description" name="description" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_amount" class="form-label">Valor</label>
+                        <div class="input-group">
+                            <span class="input-group-text">R$</span>
+                            <input type="number" class="form-control" id="edit_amount" name="amount" step="0.01" required>
+                        </div>
+                        <small class="form-text text-muted">Use valores negativos para despesas e positivos para receitas.</small>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_category_id" class="form-label">Categoria</label>
+                        <select class="form-select" id="edit_category_id" name="category_id" required>
+                            {% for c in categories %}
+                            <option value="{{ c.id }}">{{ c.name }} ({{ c.type }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" id="edit_recurring" name="recurring">
+                        <label class="form-check-label" for="edit_recurring">Transação Recorrente</label>
+                    </div>
+                    <div class="mb-3 edit-recurring-options d-none">
+                        <label for="edit_recurring_period" class="form-label">Periodicidade</label>
+                        <select class="form-select" id="edit_recurring_period" name="recurring_period">
+                            <option value="monthly">Mensal</option>
+                            <option value="yearly">Anual</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para confirmar exclusão -->
+<div class="modal fade" id="deleteTransactionModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirmar Exclusão</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Tem certeza que deseja excluir esta transação?</p>
+                <p>Esta ação não pode ser desfeita.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <form id="deleteForm" action="" method="POST">
+                    <button type="submit" class="btn btn-danger">Excluir</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Atualizar lista quando o formulário for enviado
+        const dateForm = document.getElementById('dateForm');
+        dateForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const month = document.getElementById('monthSelect').value;
+            const year = document.getElementById('yearSelect').value;
+            window.location.href = `{{ url_for('transactions') }}?month=${month}&year=${year}`;
+        });
+        
+        // Mostrar/esconder opções de recorrência
+        const recurringCheckbox = document.getElementById('recurring');
+        const recurringOptions = document.querySelector('.recurring-options');
+        
+        recurringCheckbox.addEventListener('change', function() {
+            if (this.checked) {
+                recurringOptions.classList.remove('d-none');
+            } else {
+                recurringOptions.classList.add('d-none');
+            }
+        });
+        
+        // Configurar modal de edição
+        const editButtons = document.querySelectorAll('.edit-btn');
+        const editForm = document.getElementById('editForm');
+        const editRecurringCheckbox = document.getElementById('edit_recurring');
+        const editRecurringOptions = document.querySelector('.edit-recurring-options');
+        
+        editButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                const id = this.getAttribute('data-id');
+                const date = this.getAttribute('data-date');
+                const description = this.getAttribute('data-description');
+                const amount = this.getAttribute('data-amount');
+                const category = this.getAttribute('data-category');
+                const recurring = this.getAttribute('data-recurring') === 'True';
+                const recurringPeriod = this.getAttribute('data-recurring-period');
+                
+                editForm.action = `{{ url_for('edit_transaction', id=0) }}`.replace('0', id);
+                document.getElementById('edit_date').value = date;
+                document.getElementById('edit_description').value = description;
+                document.getElementById('edit_amount').value = amount;
+                document.getElementById('edit_category_id').value = category;
+                document.getElementById('edit_recurring').checked = recurring;
+                
+                if (recurring) {
+                    editRecurringOptions.classList.remove('d-none');
+                    document.getElementById('edit_recurring_period').value = recurringPeriod;
+                } else {
+                    editRecurringOptions.classList.add('d-none');
+                }
+            });
+        });
+        
+        editRecurringCheckbox.addEventListener('change', function() {
+            if (this.checked) {
+                editRecurringOptions.classList.remove('d-none');
+            } else {
+                editRecurringOptions.classList.add('d-none');
+            }
+        });
+        
+        // Configurar modal de exclusão
+        const deleteButtons = document.querySelectorAll('.delete-btn');
+        const deleteForm = document.getElementById('deleteForm');
+        
+        deleteButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                const id = this.getAttribute('data-id');
+                deleteForm.action = `{{ url_for('delete_transaction', id=0) }}`.replace('0', id);
+            });
+        });
+        
+        // Definir data padrão para hoje
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('date').value = today;
+    });
+</script>
+{% endblock %}

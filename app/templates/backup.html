@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card shadow">
+            <div class="card-body">
+                <h2 class="card-title">Backup de Dados</h2>
+                <p class="card-text">
+                    Faça um backup completo dos seus dados financeiros para evitar perdas.
+                    O backup será salvo como um arquivo de banco de dados SQLite que você pode armazenar com segurança.
+                </p>
+                
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <strong>Dica:</strong> Recomendamos fazer backups regularmente, especialmente antes de importar grandes quantidades de dados.
+                </div>
+                
+                <form action="{{ url_for('backup') }}" method="POST" class="mt-4">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-download me-1"></i> Criar e Baixar Backup
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card shadow h-100">
+            <div class="card-body">
+                <h4 class="card-title">Por que fazer backup?</h4>
+                <ul>
+                    <li>Protege seus dados contra perda acidental</li>
+                    <li>Permite transferir seus dados para outro computador</li>
+                    <li>Mantém um histórico de suas finanças ao longo do tempo</li>
+                    <li>Possibilita a restauração em caso de problemas com o aplicativo</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card shadow h-100">
+            <div class="card-body">
+                <h4 class="card-title">Como restaurar um backup?</h4>
+                <p>
+                    Para restaurar um backup, vá para a página 
+                    <a href="{{ url_for('restore') }}">Restaurar Backup</a> 
+                    e selecione o arquivo de backup que você deseja restaurar.
+                </p>
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <strong>Atenção:</strong> A restauração de um backup substituirá todos os dados atuais. 
+                    Certifique-se de fazer um backup dos seus dados atuais antes de restaurar.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
