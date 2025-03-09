@@ -35,8 +35,10 @@ from app.models.models import Transaction, Category, Goal
 with app.app_context():
     db.create_all()
 
-# Import routes at the end to avoid circular imports
+# Import and register blueprints
 from app.controllers.routes import *
+from app.controllers.financial_flow import bp as financial_flow_bp
+app.register_blueprint(financial_flow_bp)
 
 # Make sure to export both app and db
 __all__ = ['app', 'db']

@@ -1,0 +1,440 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Fluxo Financeiro Mensal</h2>
+        <div class="btn-group">
+            <button class="btn btn-outline-primary" onclick="exportData('excel')">
+                <i class="fas fa-file-excel"></i> Exportar Excel
+            </button>
+            <button class="btn btn-outline-primary" onclick="exportData('pdf')">
+                <i class="fas fa-file-pdf"></i> Exportar PDF
+            </button>
+        </div>
+    </div>
+    
+    <!-- Filtros -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form id="filterForm" class="row g-3">
+                <div class="col-md-3">
+                    <label for="startDate" class="form-label">Data Inicial</label>
+                    <input type="month" class="form-control" id="startDate" name="startDate">
+                </div>
+                <div class="col-md-3">
+                    <label for="endDate" class="form-label">Data Final</label>
+                    <input type="month" class="form-control" id="endDate" name="endDate">
+                </div>
+                <div class="col-md-6 d-flex align-items-end">
+                    <div class="btn-group w-100">
+                        <button type="button" class="btn btn-outline-secondary" onclick="setFilter('year')">Ano</button>
+                        <button type="button" class="btn btn-outline-secondary" onclick="setFilter('semester1')">1º Semestre</button>
+                        <button type="button" class="btn btn-outline-secondary" onclick="setFilter('semester2')">2º Semestre</button>
+                        <button type="button" class="btn btn-outline-secondary" onclick="setFilter('quarter1')">1º Trim</button>
+                        <button type="button" class="btn btn-outline-secondary" onclick="setFilter('quarter2')">2º Trim</button>
+                        <button type="button" class="btn btn-outline-secondary" onclick="setFilter('quarter3')">3º Trim</button>
+                        <button type="button" class="btn btn-outline-secondary" onclick="setFilter('quarter4')">4º Trim</button>
+                        <button type="submit" class="btn btn-primary">Atualizar</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Tabela de Fluxo Financeiro -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover financial-flow-table" id="financialFlowTable">
+                    <thead>
+                        <tr>
+                            <th>Categoria</th>
+                            <!-- Meses serão inseridos dinamicamente via JavaScript -->
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Linhas serão inseridas dinamicamente via JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Gráficos -->
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Evolução Mensal</h5>
+                    <div class="chart-container">
+                        <div id="evolutionChart"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Composição Mensal</h5>
+                    <div class="chart-container">
+                        <div id="compositionChart"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Detalhes -->
+<div class="modal fade" id="editModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Detalhes</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="detailsContent">
+                    <!-- Conteúdo será preenchido dinamicamente -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Scripts específicos para a página -->
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Função para formatar valores monetários
+    function formatCurrency(value) {
+        return new Intl.NumberFormat('pt-BR', {
+            style: 'currency',
+            currency: 'BRL'
+        }).format(value);
+    }
+
+    // Função para formatar percentuais
+    function formatPercentage(value) {
+        return new Intl.NumberFormat('pt-BR', {
+            style: 'percent',
+            minimumFractionDigits: 1,
+            maximumFractionDigits: 1
+        }).format(value / 100);
+    }
+
+    // Função para formatar mês
+    function formatMonth(monthStr) {
+        const [year, month] = monthStr.split('-');
+        const date = new Date(year, parseInt(month) - 1);
+        return date.toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' });
+    }
+
+    // Função para atualizar a tabela com os dados
+    function updateTable(data) {
+        const table = document.getElementById('financialFlowTable');
+        const tbody = table.querySelector('tbody');
+        const headerRow = table.querySelector('thead tr');
+        
+        // Limpar conteúdo existente
+        headerRow.innerHTML = '<th>Categoria</th>';
+        tbody.innerHTML = '';
+        
+        // Adicionar colunas de meses
+        data.months.forEach(month => {
+            const th = document.createElement('th');
+            th.textContent = formatMonth(month);
+            headerRow.appendChild(th);
+        });
+
+        // Preencher dados
+        data.rows.forEach(rowData => {
+            const tr = document.createElement('tr');
+            
+            // Adicionar classe baseada no tipo
+            if (rowData.type === 'total' || rowData.type === 'projection') {
+                tr.classList.add('table-primary', 'fw-bold');
+            } else if (rowData.type === 'income') {
+                tr.classList.add('table-info');
+            } else if (rowData.type === 'reserve' || rowData.type === 'investment') {
+                tr.classList.add('table-success');
+            } else if (rowData.type === 'expense') {
+                tr.classList.add('table-danger');
+            }
+
+            // Adicionar célula de categoria com ícone
+            const tdCategory = document.createElement('td');
+            let icon = '';
+            switch (rowData.type) {
+                case 'income':
+                    icon = '<i class="fas fa-money-bill-wave text-success me-2"></i>';
+                    break;
+                case 'expense':
+                    icon = '<i class="fas fa-shopping-cart text-danger me-2"></i>';
+                    break;
+                case 'investment':
+                    icon = '<i class="fas fa-chart-line text-primary me-2"></i>';
+                    break;
+                case 'reserve':
+                    icon = '<i class="fas fa-piggy-bank text-success me-2"></i>';
+                    break;
+                case 'total':
+                    icon = '<i class="fas fa-calculator text-primary me-2"></i>';
+                    break;
+                case 'projection':
+                    icon = '<i class="fas fa-chart-bar text-info me-2"></i>';
+                    break;
+            }
+            tdCategory.innerHTML = icon + rowData.name;
+            tr.appendChild(tdCategory);
+
+            // Adicionar células de valores
+            rowData.values.forEach((value, index) => {
+                const td = document.createElement('td');
+                td.classList.add('text-end');
+                
+                if (rowData.type === 'percentage') {
+                    td.textContent = formatPercentage(value);
+                    td.classList.add(value > 100 ? 'text-danger' : 'text-success');
+                } else {
+                    td.textContent = formatCurrency(value);
+                    if (value < 0) td.classList.add('text-danger');
+                    if (value > 0) td.classList.add('text-success');
+                }
+
+                // Adicionar evento de clique para mostrar detalhes
+                if (rowData.details) {
+                    td.setAttribute('data-has-details', 'true');
+                    td.addEventListener('click', () => showDetails(rowData, index, data.months[index]));
+                }
+
+                tr.appendChild(td);
+            });
+
+            tbody.appendChild(tr);
+        });
+    }
+
+    // Função para mostrar detalhes em modal
+    function showDetails(rowData, monthIndex, month) {
+        const modal = new bootstrap.Modal(document.getElementById('editModal'));
+        const detailsContent = document.getElementById('detailsContent');
+        
+        let content = `
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h6 class="mb-0">${rowData.name} - ${formatMonth(month)}</h6>
+                <span class="badge bg-${rowData.type === 'expense' ? 'danger' : 'success'} fs-5">
+                    ${formatCurrency(rowData.values[monthIndex])}
+                </span>
+            </div>
+            <hr>
+        `;
+        
+        if (rowData.details) {
+            content += '<div class="table-responsive"><table class="table table-sm">';
+            content += '<thead><tr><th>Categoria</th><th class="text-end">Valor</th><th class="text-end">%</th></tr></thead>';
+            content += '<tbody>';
+            
+            const details = Object.entries(rowData.details);
+            const total = Math.abs(rowData.values[monthIndex]);
+            
+            details.sort((a, b) => Math.abs(b[1][monthIndex]) - Math.abs(a[1][monthIndex]));
+            
+            for (const [category, values] of details) {
+                const value = values[monthIndex];
+                const percentage = total > 0 ? (Math.abs(value) / total * 100) : 0;
+                
+                content += `
+                    <tr>
+                        <td>${category}</td>
+                        <td class="text-end ${value < 0 ? 'text-danger' : 'text-success'}">${formatCurrency(value)}</td>
+                        <td class="text-end">${percentage.toFixed(1)}%</td>
+                    </tr>`;
+            }
+            content += '</tbody></table></div>';
+        }
+
+        detailsContent.innerHTML = content;
+        modal.show();
+    }
+
+    // Função para criar os gráficos
+    function createCharts(data) {
+        // Gráfico de evolução
+        const evolutionTraces = [
+            {
+                x: data.months.map(formatMonth),
+                y: data.rows.find(row => row.name === 'Entradas').values,
+                type: 'scatter',
+                name: 'Entradas',
+                line: { color: '#28a745', width: 3 }
+            },
+            {
+                x: data.months.map(formatMonth),
+                y: data.rows.find(row => row.name === 'Saídas').values,
+                type: 'scatter',
+                name: 'Saídas',
+                line: { color: '#dc3545', width: 3 }
+            },
+            {
+                x: data.months.map(formatMonth),
+                y: data.rows.find(row => row.name === 'Projeção Mensal (Saving+Invest)').values,
+                type: 'scatter',
+                name: 'Projeção',
+                line: { color: '#17a2b8', width: 2, dash: 'dot' }
+            }
+        ];
+
+        const evolutionLayout = {
+            title: 'Evolução Mensal',
+            xaxis: { title: 'Mês' },
+            yaxis: { 
+                title: 'Valor (R$)',
+                tickformat: 'R$,.0f'
+            },
+            hovermode: 'x unified',
+            showlegend: true,
+            legend: {
+                orientation: 'h',
+                yanchor: 'bottom',
+                y: -0.2,
+                xanchor: 'center',
+                x: 0.5
+            }
+        };
+
+        Plotly.newPlot('evolutionChart', evolutionTraces, evolutionLayout);
+
+        // Gráfico de composição
+        const compositionTraces = [
+            {
+                x: data.months.map(formatMonth),
+                y: data.rows.find(row => row.name === 'Receitas').values,
+                type: 'bar',
+                name: 'Receitas',
+                marker: { color: '#28a745' }
+            },
+            {
+                x: data.months.map(formatMonth),
+                y: data.rows.find(row => row.name === 'Reserva Emergência').values,
+                type: 'bar',
+                name: 'Reserva',
+                marker: { color: '#20c997' }
+            },
+            {
+                x: data.months.map(formatMonth),
+                y: data.rows.find(row => row.name === 'Investimentos').values,
+                type: 'bar',
+                name: 'Investimentos',
+                marker: { color: '#17a2b8' }
+            },
+            {
+                x: data.months.map(formatMonth),
+                y: data.rows.find(row => row.name === 'Despesas').values.map(v => -v),
+                type: 'bar',
+                name: 'Despesas',
+                marker: { color: '#dc3545' }
+            }
+        ];
+
+        const compositionLayout = {
+            title: 'Composição Mensal',
+            barmode: 'relative',
+            xaxis: { title: 'Mês' },
+            yaxis: { 
+                title: 'Valor (R$)',
+                tickformat: 'R$,.0f'
+            },
+            hovermode: 'x unified',
+            showlegend: true,
+            legend: {
+                orientation: 'h',
+                yanchor: 'bottom',
+                y: -0.2,
+                xanchor: 'center',
+                x: 0.5
+            }
+        };
+
+        Plotly.newPlot('compositionChart', compositionTraces, compositionLayout);
+    }
+
+    // Função para exportar dados
+    window.exportData = function(format) {
+        window.location.href = `/api/financial-flow/export?format=${format}`;
+    }
+
+    // Função para definir filtros rápidos
+    window.setFilter = function(period) {
+        const now = new Date();
+        const year = now.getFullYear();
+        
+        switch (period) {
+            case 'year':
+                document.getElementById('startDate').value = `${year}-01`;
+                document.getElementById('endDate').value = `${year}-12`;
+                break;
+            case 'semester1':
+                document.getElementById('startDate').value = `${year}-01`;
+                document.getElementById('endDate').value = `${year}-06`;
+                break;
+            case 'semester2':
+                document.getElementById('startDate').value = `${year}-07`;
+                document.getElementById('endDate').value = `${year}-12`;
+                break;
+            case 'quarter1':
+                document.getElementById('startDate').value = `${year}-01`;
+                document.getElementById('endDate').value = `${year}-03`;
+                break;
+            case 'quarter2':
+                document.getElementById('startDate').value = `${year}-04`;
+                document.getElementById('endDate').value = `${year}-06`;
+                break;
+            case 'quarter3':
+                document.getElementById('startDate').value = `${year}-07`;
+                document.getElementById('endDate').value = `${year}-09`;
+                break;
+            case 'quarter4':
+                document.getElementById('startDate').value = `${year}-10`;
+                document.getElementById('endDate').value = `${year}-12`;
+                break;
+        }
+        
+        document.getElementById('filterForm').dispatchEvent(new Event('submit'));
+    }
+
+    // Carregar dados iniciais
+    fetch('/api/financial-flow')
+        .then(response => response.json())
+        .then(data => {
+            updateTable(data);
+            createCharts(data);
+        });
+
+    // Configurar formulário de filtro
+    document.getElementById('filterForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const startDate = document.getElementById('startDate').value;
+        const endDate = document.getElementById('endDate').value;
+        
+        fetch(`/api/financial-flow?start_date=${startDate}&end_date=${endDate}`)
+            .then(response => response.json())
+            .then(data => {
+                updateTable(data);
+                createCharts(data);
+            });
+    });
+
+    // Definir filtro inicial para o ano atual
+    setFilter('year');
+
+    // Ajustar gráficos quando a janela for redimensionada
+    window.addEventListener('resize', function() {
+        Plotly.Plots.resize('evolutionChart');
+        Plotly.Plots.resize('compositionChart');
+    });
+});
+</script>
+{% endblock %}
+{% endblock %} 
