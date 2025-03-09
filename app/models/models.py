@@ -7,6 +7,7 @@ class Category(db.Model):
     type = db.Column(db.String(50), nullable=False)  # 'expense', 'income', 'investment'
     color = db.Column(db.String(20), default='#3498db')
     transactions = db.relationship('Transaction', backref='category', lazy=True)
+    goals = db.relationship('Goal', backref='category', lazy=True)
     
     def to_dict(self):
         return {
