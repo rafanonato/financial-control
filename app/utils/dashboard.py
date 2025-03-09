@@ -27,7 +27,7 @@ def generate_monthly_charts(transactions, month, year):
     data = []
     for t in transactions:
         data.append({
-            'data': t.date,
+            'data': pd.to_datetime(t.date),  # Convertendo para datetime64
             'descrição': t.description,
             'valor': t.amount,
             'categoria': t.category.name,
@@ -78,7 +78,7 @@ def generate_monthly_charts(transactions, month, year):
         charts['pie_income'] = '{}'
     
     # Gráfico de barras para evolução diária
-    df['dia'] = df['data'].dt.day
+    df['dia'] = df['data'].dt.day  # Agora podemos usar .dt pois data é datetime64
     daily_balance = df.groupby('dia')['valor'].sum().reset_index()
     
     # Garantir que todos os dias do mês estejam presentes
@@ -170,7 +170,7 @@ def generate_yearly_charts(transactions, year):
     data = []
     for t in transactions:
         data.append({
-            'data': t.date,
+            'data': pd.to_datetime(t.date),  # Convertendo para datetime64
             'mês': t.date.month,
             'descrição': t.description,
             'valor': t.amount,
