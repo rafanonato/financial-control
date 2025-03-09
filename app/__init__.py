@@ -2,18 +2,31 @@ from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 import os
 
-# Initialize Flask app
-app = Flask(__name__, template_folder='templates', static_folder='static')
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///financial_data.db'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['UPLOAD_FOLDER'] = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'uploads')
-app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max upload size
+# Get the absolute path for the project root
+basedir = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
 
-# Ensure upload directory exists
+# Initialize Flask app
+app = Flask(__name__)
+
+# Configure the Flask app
+app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{os.path.join(basedir, "instance", "financial_data.db")}'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['UPLOAD_FOLDER'] = os.path.join(basedir, 'uploads')
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max upload size
+app.config['TEMPLATES_AUTO_RELOAD'] = True
+app.config['TEMPLATE_FOLDER'] = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'templates')
+app.config['STATIC_FOLDER'] = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static')
+
+# Ensure directories exist
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+os.makedirs(os.path.dirname(app.config['SQLALCHEMY_DATABASE_URI'].replace('sqlite:///', '')), exist_ok=True)
 
 # Initialize database
-db = SQLAlchemy(app)
+db = SQLAlchemy()
+db.init_app(app)
+
+# Push an application context
+app.app_context().push()
 
 # Import models after db initialization to avoid circular imports
 from app.models.models import Transaction, Category, Goal
@@ -24,3 +37,6 @@ with app.app_context():
 
 # Import routes at the end to avoid circular imports
 from app.controllers.routes import *
+
+# Make sure to export both app and db
+__all__ = ['app', 'db']

@@ -1,22 +1,5 @@
 from datetime import datetime
-import sys
-import os
 from app import db
-
-# Adiciona o diretório raiz ao caminho de busca do Python
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
-
-# Importa a instância db do app_main.py
-try:
-    from app_main import db
-except ImportError:
-    # Fallback para execução direta do arquivo
-    from flask import Flask
-    from flask_sqlalchemy import SQLAlchemy
-    app = Flask(__name__)
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///test.db'
-    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-    db = SQLAlchemy(app)
 
 class Category(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -79,43 +62,3 @@ class Goal(db.Model):
             'end_date': self.end_date.strftime('%Y-%m-%d') if self.end_date else None,
             'progress': (self.current_amount / self.target_amount * 100) if self.target_amount > 0 else 0
         }
-
-
-# Este bloco será executado apenas quando o arquivo for executado diretamente
-if __name__ == "__main__":
-    # Quando executado diretamente, usamos a instância de Flask e SQLAlchemy criada no bloco try/except acima
-    # Isso garante que estamos usando a mesma instância de db em todo o código
-    
-    # Criar um contexto de aplicação
-    with app.app_context():
-        # Criar as tabelas no banco de dados
-        db.create_all()
-        
-        # Verificar se já existem categorias
-        if not Category.query.first():
-            # Criar algumas categorias de exemplo
-            categories = [
-                Category(name="Moradia", type="expense", color="#e74c3c"),
-                Category(name="Alimentação", type="expense", color="#3498db"),
-                Category(name="Transporte", type="expense", color="#2ecc71"),
-                Category(name="Lazer", type="expense", color="#f39c12"),
-                Category(name="Saúde", type="expense", color="#9b59b6"),
-                Category(name="Educação", type="expense", color="#1abc9c"),
-                Category(name="Salário", type="income", color="#27ae60"),
-                Category(name="Investimentos", type="investment", color="#2980b9")
-            ]
-            
-            # Adicionar categorias ao banco de dados
-            for category in categories:
-                db.session.add(category)
-            
-            # Commit das alterações
-            db.session.commit()
-            print("Categorias de exemplo criadas com sucesso!")
-        
-        # Listar todas as categorias
-        print("\nCategorias disponíveis:")
-        for category in Category.query.all():
-            print(f"ID: {category.id}, Nome: {category.name}, Tipo: {category.type}")
-        
-        print("\nModelo de dados configurado com sucesso!")
