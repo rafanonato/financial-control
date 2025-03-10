@@ -31,6 +31,7 @@
                         <button type="button" class="btn btn-outline-secondary" onclick="setFilter('year')">Ano</button>
                         <button type="button" class="btn btn-outline-secondary" onclick="setFilter('semester1')">1º Semestre</button>
                         <button type="button" class="btn btn-outline-secondary" onclick="setFilter('semester2')">2º Semestre</button>
+                        <button type="button" class="btn btn-outline-secondary" onclick="setFilter('quarter')">Trimestre</button>
                         <button type="submit" class="btn btn-primary">Atualizar</button>
                     </div>
                 </div>
@@ -232,21 +233,28 @@ document.addEventListener('DOMContentLoaded', function() {
                 y: data.rows.find(row => row.name === 'Total Entradas').values,
                 type: 'scatter',
                 name: 'Entradas',
-                line: { color: '#198754' }
+                line: { color: '#198754', width: 3 }
             },
             {
                 x: months,
                 y: data.rows.find(row => row.name === 'Total Saídas').values,
                 type: 'scatter',
                 name: 'Saídas',
-                line: { color: '#dc3545' }
+                line: { color: '#dc3545', width: 3 }
+            },
+            {
+                x: months,
+                y: data.rows.find(row => row.name === 'Fechamento Mensal').values,
+                type: 'scatter',
+                name: 'Fechamento',
+                line: { color: '#0d6efd', width: 3 }
             },
             {
                 x: months,
                 y: data.rows.find(row => row.name === 'Projeção Mensal (Saving+Invest)').values,
                 type: 'scatter',
                 name: 'Projeção',
-                line: { color: '#0d6efd', dash: 'dot' }
+                line: { color: '#6610f2', width: 3, dash: 'dot' }
             }
         ];
 
@@ -265,15 +273,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 y: -0.2,
                 xanchor: 'center',
                 x: 0.5
-            }
+            },
+            margin: { t: 30 }
         };
 
         Plotly.newPlot('evolutionChart', evolutionTraces, evolutionLayout, { responsive: true });
 
         // Gráfico de composição
-        const receitas = data.rows.find(row => row.name === 'Receitas').values;
-        const despesas = data.rows.find(row => row.name === 'Despesas').values.map(v => -v);
-        const investimentos = data.rows.find(row => row.name === 'SUBTOTAL INVESTIMENTOS').values.map(v => -v);
+        const receitas = data.rows.find(row => row.name === 'SUBTOTAL RECEITAS').values;
+        const investimentos = data.rows.find(row => row.name === 'SUBTOTAL INVESTIMENTOS').values;
+        const despesas = data.rows.find(row => row.name === 'SUBTOTAL DESPESAS').values.map(v => -v);
 
         const compositionTraces = [
             {
@@ -285,23 +294,23 @@ document.addEventListener('DOMContentLoaded', function() {
             },
             {
                 x: months,
-                y: despesas,
-                type: 'bar',
-                name: 'Despesas',
-                marker: { color: '#dc3545' }
-            },
-            {
-                x: months,
                 y: investimentos,
                 type: 'bar',
                 name: 'Investimentos',
                 marker: { color: '#0d6efd' }
+            },
+            {
+                x: months,
+                y: despesas,
+                type: 'bar',
+                name: 'Despesas',
+                marker: { color: '#dc3545' }
             }
         ];
 
         const compositionLayout = {
             title: 'Composição Mensal',
-            barmode: 'relative',
+            barmode: 'group',
             xaxis: { title: 'Mês' },
             yaxis: { 
                 title: 'Valor (R$)',
@@ -315,7 +324,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 y: -0.2,
                 xanchor: 'center',
                 x: 0.5
-            }
+            },
+            margin: { t: 30 }
         };
 
         Plotly.newPlot('compositionChart', compositionTraces, compositionLayout, { responsive: true });
@@ -325,7 +335,7 @@ document.addEventListener('DOMContentLoaded', function() {
     window.exportData = function(format) {
         const startDate = document.getElementById('startDate').value;
         const endDate = document.getElementById('endDate').value;
-        let url = `/api/financial-flow/export?format=${format}`;
+        let url = `/financial-flow/api/export?format=${format}`;
         if (startDate) url += `&start_date=${startDate}`;
         if (endDate) url += `&end_date=${endDate}`;
         window.location.href = url;
@@ -335,6 +345,8 @@ document.addEventListener('DOMContentLoaded', function() {
     window.setFilter = function(period) {
         const now = new Date();
         const year = now.getFullYear();
+        const month = now.getMonth() + 1;
+        const quarter = Math.floor((month - 1) / 3);
         
         switch (period) {
             case 'year':
@@ -349,6 +361,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 document.getElementById('startDate').value = `${year}-07`;
                 document.getElementById('endDate').value = `${year}-12`;
                 break;
+            case 'quarter':
+                const startMonth = quarter * 3 + 1;
+                const endMonth = startMonth + 2;
+                document.getElementById('startDate').value = `${year}-${String(startMonth).padStart(2, '0')}`;
+                document.getElementById('endDate').value = `${year}-${String(endMonth).padStart(2, '0')}`;
+                break;
         }
         
         document.getElementById('filterForm').dispatchEvent(new Event('submit'));
@@ -360,7 +378,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const startDate = document.getElementById('startDate').value;
         const endDate = document.getElementById('endDate').value;
         
-        fetch(`/api/financial-flow?start_date=${startDate}&end_date=${endDate}`)
+        fetch(`/financial-flow/api?start_date=${startDate}&end_date=${endDate}`)
             .then(response => response.json())
             .then(data => {
                 updateTable(data);

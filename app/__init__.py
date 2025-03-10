@@ -39,6 +39,7 @@ with app.app_context():
 from app.controllers.routes import *
 from app.controllers.financial_flow import bp as financial_flow_bp
 
+# Registrar blueprints
 app.register_blueprint(financial_flow_bp)
 
 # Make sure to export both app and db
