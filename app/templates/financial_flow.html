@@ -1,0 +1,386 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Fluxo Financeiro Mensal</h2>
+        <div class="btn-group">
+            <button class="btn btn-outline-primary" onclick="exportData('excel')">
+                <i class="fas fa-file-excel"></i> Exportar Excel
+            </button>
+            <button class="btn btn-outline-primary" onclick="exportData('pdf')">
+                <i class="fas fa-file-pdf"></i> Exportar PDF
+            </button>
+        </div>
+    </div>
+    
+    <!-- Filtros -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form id="filterForm" class="row g-3">
+                <div class="col-md-4">
+                    <label for="startDate" class="form-label">Data Inicial</label>
+                    <input type="month" class="form-control" id="startDate" name="startDate">
+                </div>
+                <div class="col-md-4">
+                    <label for="endDate" class="form-label">Data Final</label>
+                    <input type="month" class="form-control" id="endDate" name="endDate">
+                </div>
+                <div class="col-md-4 d-flex align-items-end">
+                    <div class="btn-group">
+                        <button type="button" class="btn btn-outline-secondary" onclick="setFilter('year')">Ano</button>
+                        <button type="button" class="btn btn-outline-secondary" onclick="setFilter('semester1')">1º Semestre</button>
+                        <button type="button" class="btn btn-outline-secondary" onclick="setFilter('semester2')">2º Semestre</button>
+                        <button type="submit" class="btn btn-primary">Atualizar</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Tabela de Fluxo Financeiro -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover financial-flow-table" id="financialFlowTable">
+                    <thead>
+                        <tr>
+                            <th>Categoria</th>
+                            <!-- Meses serão inseridos dinamicamente via JavaScript -->
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Linhas serão inseridas dinamicamente via JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Gráficos -->
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Evolução Mensal</h5>
+                    <div class="chart-container">
+                        <div id="evolutionChart"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Composição Mensal</h5>
+                    <div class="chart-container">
+                        <div id="compositionChart"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Detalhes -->
+<div class="modal fade" id="editModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Detalhes</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="detailsContent">
+                    <!-- Conteúdo será preenchido dinamicamente -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Scripts específicos para a página -->
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Função para formatar valores monetários
+    function formatCurrency(value) {
+        return new Intl.NumberFormat('pt-BR', {
+            style: 'currency',
+            currency: 'BRL'
+        }).format(value);
+    }
+
+    // Função para formatar percentuais
+    function formatPercentage(value) {
+        return new Intl.NumberFormat('pt-BR', {
+            style: 'percent',
+            minimumFractionDigits: 1,
+            maximumFractionDigits: 1
+        }).format(value / 100);
+    }
+
+    // Função para atualizar a tabela com os dados
+    function updateTable(data) {
+        const table = document.getElementById('financialFlowTable');
+        const tbody = table.querySelector('tbody');
+        const headerRow = table.querySelector('thead tr');
+        
+        // Limpar conteúdo existente
+        headerRow.innerHTML = '<th>Categoria</th>';
+        tbody.innerHTML = '';
+        
+        // Adicionar colunas de meses
+        data.months.forEach(month => {
+            const th = document.createElement('th');
+            const date = new Date(month + '-01');
+            th.textContent = date.toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' });
+            headerRow.appendChild(th);
+        });
+
+        // Preencher dados
+        data.rows.forEach(rowData => {
+            const tr = document.createElement('tr');
+            tr.setAttribute('data-type', rowData.type);
+            
+            // Adicionar célula de categoria
+            const tdCategory = document.createElement('td');
+            tdCategory.textContent = rowData.name;
+            tr.appendChild(tdCategory);
+
+            // Adicionar células de valores
+            rowData.values.forEach((value, index) => {
+                const td = document.createElement('td');
+                
+                if (rowData.type === 'percentage') {
+                    td.textContent = formatPercentage(value);
+                    td.classList.add(value > 100 ? 'text-danger' : 'text-success');
+                } else if (rowData.type === 'spacer') {
+                    td.innerHTML = '&nbsp;';
+                } else {
+                    td.textContent = formatCurrency(value);
+                    if (value < 0) td.classList.add('text-danger');
+                    if (value > 0 && !['section_header', 'subtotal'].includes(rowData.type)) {
+                        td.classList.add('text-success');
+                    }
+                }
+
+                // Adicionar detalhes se disponíveis
+                if (rowData.details) {
+                    td.setAttribute('data-has-details', 'true');
+                    td.addEventListener('click', () => showDetails(rowData, index, data.months[index]));
+                }
+
+                tr.appendChild(td);
+            });
+
+            tbody.appendChild(tr);
+        });
+    }
+
+    // Função para mostrar detalhes em modal
+    function showDetails(rowData, monthIndex, month) {
+        const modal = new bootstrap.Modal(document.getElementById('editModal'));
+        const detailsContent = document.getElementById('detailsContent');
+        const date = new Date(month + '-01');
+        const monthName = date.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+        
+        let content = `<h6>${rowData.name} - ${monthName}</h6><hr>`;
+        
+        if (rowData.details) {
+            let total = 0;
+            content += '<ul class="list-group">';
+            
+            // Ordenar detalhes por valor (maior para menor)
+            const sortedDetails = Object.entries(rowData.details)
+                .map(([category, values]) => ({ category, value: values[monthIndex] }))
+                .sort((a, b) => Math.abs(b.value) - Math.abs(a.value));
+
+            sortedDetails.forEach(({ category, value }) => {
+                total += value;
+                content += `
+                    <li class="list-group-item">
+                        <span class="category">${category}</span>
+                        <span class="value ${value < 0 ? 'text-danger' : 'text-success'}">${formatCurrency(value)}</span>
+                    </li>`;
+            });
+
+            content += `
+                <li class="list-group-item fw-bold">
+                    <span class="category">Total</span>
+                    <span class="value ${total < 0 ? 'text-danger' : 'text-success'}">${formatCurrency(total)}</span>
+                </li>`;
+            content += '</ul>';
+        }
+
+        detailsContent.innerHTML = content;
+        modal.show();
+    }
+
+    // Função para criar os gráficos
+    function createCharts(data) {
+        // Preparar dados para os gráficos
+        const months = data.months.map(m => {
+            const date = new Date(m + '-01');
+            return date.toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' });
+        });
+
+        // Gráfico de evolução
+        const evolutionTraces = [
+            {
+                x: months,
+                y: data.rows.find(row => row.name === 'Total Entradas').values,
+                type: 'scatter',
+                name: 'Entradas',
+                line: { color: '#198754' }
+            },
+            {
+                x: months,
+                y: data.rows.find(row => row.name === 'Total Saídas').values,
+                type: 'scatter',
+                name: 'Saídas',
+                line: { color: '#dc3545' }
+            },
+            {
+                x: months,
+                y: data.rows.find(row => row.name === 'Projeção Mensal (Saving+Invest)').values,
+                type: 'scatter',
+                name: 'Projeção',
+                line: { color: '#0d6efd', dash: 'dot' }
+            }
+        ];
+
+        const evolutionLayout = {
+            title: 'Evolução Mensal',
+            xaxis: { title: 'Mês' },
+            yaxis: { 
+                title: 'Valor (R$)',
+                tickformat: 'R$,.2f'
+            },
+            hovermode: 'x unified',
+            showlegend: true,
+            legend: {
+                orientation: 'h',
+                yanchor: 'bottom',
+                y: -0.2,
+                xanchor: 'center',
+                x: 0.5
+            }
+        };
+
+        Plotly.newPlot('evolutionChart', evolutionTraces, evolutionLayout, { responsive: true });
+
+        // Gráfico de composição
+        const receitas = data.rows.find(row => row.name === 'Receitas').values;
+        const despesas = data.rows.find(row => row.name === 'Despesas').values.map(v => -v);
+        const investimentos = data.rows.find(row => row.name === 'SUBTOTAL INVESTIMENTOS').values.map(v => -v);
+
+        const compositionTraces = [
+            {
+                x: months,
+                y: receitas,
+                type: 'bar',
+                name: 'Receitas',
+                marker: { color: '#198754' }
+            },
+            {
+                x: months,
+                y: despesas,
+                type: 'bar',
+                name: 'Despesas',
+                marker: { color: '#dc3545' }
+            },
+            {
+                x: months,
+                y: investimentos,
+                type: 'bar',
+                name: 'Investimentos',
+                marker: { color: '#0d6efd' }
+            }
+        ];
+
+        const compositionLayout = {
+            title: 'Composição Mensal',
+            barmode: 'relative',
+            xaxis: { title: 'Mês' },
+            yaxis: { 
+                title: 'Valor (R$)',
+                tickformat: 'R$,.2f'
+            },
+            hovermode: 'x unified',
+            showlegend: true,
+            legend: {
+                orientation: 'h',
+                yanchor: 'bottom',
+                y: -0.2,
+                xanchor: 'center',
+                x: 0.5
+            }
+        };
+
+        Plotly.newPlot('compositionChart', compositionTraces, compositionLayout, { responsive: true });
+    }
+
+    // Função para exportar dados
+    window.exportData = function(format) {
+        const startDate = document.getElementById('startDate').value;
+        const endDate = document.getElementById('endDate').value;
+        let url = `/api/financial-flow/export?format=${format}`;
+        if (startDate) url += `&start_date=${startDate}`;
+        if (endDate) url += `&end_date=${endDate}`;
+        window.location.href = url;
+    }
+
+    // Função para definir filtros rápidos
+    window.setFilter = function(period) {
+        const now = new Date();
+        const year = now.getFullYear();
+        
+        switch (period) {
+            case 'year':
+                document.getElementById('startDate').value = `${year}-01`;
+                document.getElementById('endDate').value = `${year}-12`;
+                break;
+            case 'semester1':
+                document.getElementById('startDate').value = `${year}-01`;
+                document.getElementById('endDate').value = `${year}-06`;
+                break;
+            case 'semester2':
+                document.getElementById('startDate').value = `${year}-07`;
+                document.getElementById('endDate').value = `${year}-12`;
+                break;
+        }
+        
+        document.getElementById('filterForm').dispatchEvent(new Event('submit'));
+    }
+
+    // Configurar formulário de filtro
+    document.getElementById('filterForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const startDate = document.getElementById('startDate').value;
+        const endDate = document.getElementById('endDate').value;
+        
+        fetch(`/api/financial-flow?start_date=${startDate}&end_date=${endDate}`)
+            .then(response => response.json())
+            .then(data => {
+                updateTable(data);
+                createCharts(data);
+            })
+            .catch(error => {
+                console.error('Erro ao carregar dados:', error);
+                alert('Erro ao carregar os dados. Por favor, tente novamente.');
+            });
+    });
+
+    // Definir filtro inicial para o ano atual
+    setFilter('year');
+
+    // Adicionar listener para redimensionamento dos gráficos
+    window.addEventListener('resize', function() {
+        Plotly.Plots.resize('evolutionChart');
+        Plotly.Plots.resize('compositionChart');
+    });
+});
+</script>
+{% endblock %}
+{% endblock %} 

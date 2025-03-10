@@ -1,0 +1,463 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Cabeçalho -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Dashboard Anual</h2>
+        <div class="btn-group">
+            <button class="btn btn-outline-primary" onclick="exportDashboard('pdf')">
+                <i class="fas fa-file-pdf"></i> Exportar PDF
+            </button>
+            <button class="btn btn-outline-primary" onclick="exportDashboard('png')">
+                <i class="fas fa-file-image"></i> Exportar PNG
+            </button>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form id="filterForm" class="row g-3">
+                <div class="col-md-4">
+                    <label for="year" class="form-label">Ano</label>
+                    <select class="form-select" id="year" name="year">
+                        <!-- Anos serão preenchidos dinamicamente -->
+                    </select>
+                </div>
+                <div class="col-md-8 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary">Atualizar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Cards de Resumo Anual -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white h-100">
+                <div class="card-body">
+                    <h6 class="card-title">Receitas Anuais</h6>
+                    <h3 class="card-text" id="totalReceitasAnual">R$ 0,00</h3>
+                    <small class="text-white-50">Total no ano</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-danger text-white h-100">
+                <div class="card-body">
+                    <h6 class="card-title">Despesas Anuais</h6>
+                    <h3 class="card-text" id="totalDespesasAnual">R$ 0,00</h3>
+                    <small class="text-white-50">Total no ano</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white h-100">
+                <div class="card-body">
+                    <h6 class="card-title">Investimentos Anuais</h6>
+                    <h3 class="card-text" id="totalInvestimentosAnual">R$ 0,00</h3>
+                    <small class="text-white-50">Total no ano</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white h-100">
+                <div class="card-body">
+                    <h6 class="card-title">Saving Rate Anual</h6>
+                    <h3 class="card-text" id="mediaSavingRateAnual">0%</h3>
+                    <small class="text-white-50">Média no ano</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Gráficos -->
+    <div class="row">
+        <!-- Evolução Anual -->
+        <div class="col-md-12 mb-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Evolução Anual</h5>
+                    <div class="chart-container">
+                        <div id="evolucaoAnualChart"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Distribuição de Despesas Anual -->
+        <div class="col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Distribuição de Despesas Anual</h5>
+                    <div class="chart-container">
+                        <div id="despesasAnualPieChart"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Comparativo Trimestral -->
+        <div class="col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Comparativo Trimestral</h5>
+                    <div class="chart-container">
+                        <div id="comparativoTrimestralChart"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Metas Anuais -->
+        <div class="col-md-12 mb-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Metas Anuais</h5>
+                    <div class="chart-container">
+                        <div id="metasAnuaisChart"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Cash Flow Anual -->
+        <div class="col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Cash Flow Anual</h5>
+                    <div class="chart-container">
+                        <div id="cashFlowAnualChart"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Projeção Anual -->
+        <div class="col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Projeção Anual</h5>
+                    <div class="chart-container">
+                        <div id="projecaoAnualChart"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Scripts específicos para a página -->
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Função para formatar valores monetários
+    function formatCurrency(value) {
+        return new Intl.NumberFormat('pt-BR', {
+            style: 'currency',
+            currency: 'BRL'
+        }).format(value);
+    }
+
+    // Função para formatar percentuais
+    function formatPercentage(value) {
+        return new Intl.NumberFormat('pt-BR', {
+            style: 'percent',
+            minimumFractionDigits: 1,
+            maximumFractionDigits: 1
+        }).format(value / 100);
+    }
+
+    // Função para formatar mês
+    function formatMonth(monthStr) {
+        const [year, month] = monthStr.split('-');
+        const date = new Date(year, parseInt(month) - 1);
+        return date.toLocaleDateString('pt-BR', { month: 'short' });
+    }
+
+    // Função para atualizar os cards de resumo
+    function updateSummaryCards(data) {
+        const totalReceitas = data.receita_vs_despesa.receitas.reduce((a, b) => a + b, 0);
+        const totalDespesas = data.receita_vs_despesa.despesas.reduce((a, b) => a + b, 0);
+        const totalInvestimentos = data.investimentos.reserva_emergencia.reduce((a, b) => a + b, 0) +
+                                 data.investimentos.investimentos.reduce((a, b) => a + b, 0);
+        const mediaSavingRate = data.saving_rate.reduce((a, b) => a + b, 0) / data.saving_rate.length;
+
+        document.getElementById('totalReceitasAnual').textContent = formatCurrency(totalReceitas);
+        document.getElementById('totalDespesasAnual').textContent = formatCurrency(totalDespesas);
+        document.getElementById('totalInvestimentosAnual').textContent = formatCurrency(totalInvestimentos);
+        document.getElementById('mediaSavingRateAnual').textContent = formatPercentage(mediaSavingRate);
+    }
+
+    // Função para criar os gráficos
+    function createCharts(data) {
+        const months = data.months.map(formatMonth);
+
+        // Evolução Anual
+        const evolucaoData = [
+            {
+                x: months,
+                y: data.receita_vs_despesa.receitas,
+                name: 'Receitas',
+                type: 'scatter',
+                line: { width: 3, color: '#28a745' }
+            },
+            {
+                x: months,
+                y: data.receita_vs_despesa.despesas,
+                name: 'Despesas',
+                type: 'scatter',
+                line: { width: 3, color: '#dc3545' }
+            },
+            {
+                x: months,
+                y: data.fechamento_mensal,
+                name: 'Saldo',
+                type: 'bar',
+                marker: { color: '#17a2b8' }
+            }
+        ];
+
+        const evolucaoLayout = {
+            yaxis: { tickformat: 'R$,.0f' },
+            showlegend: true,
+            legend: {
+                orientation: 'h',
+                yanchor: 'bottom',
+                y: -0.3,
+                xanchor: 'center',
+                x: 0.5
+            }
+        };
+
+        Plotly.newPlot('evolucaoAnualChart', evolucaoData, evolucaoLayout);
+
+        // Distribuição de Despesas Anual
+        const despesasAnuais = Object.entries(data.despesas_categoria).map(([categoria, valores]) => ({
+            categoria,
+            total: valores.reduce((a, b) => a + b, 0)
+        }));
+
+        despesasAnuais.sort((a, b) => b.total - a.total);
+
+        const despesasAnuaisPieData = [{
+            values: despesasAnuais.map(d => d.total),
+            labels: despesasAnuais.map(d => d.categoria),
+            type: 'pie',
+            hole: 0.4,
+            marker: {
+                colors: [
+                    '#dc3545', '#fd7e14', '#ffc107', '#20c997',
+                    '#17a2b8', '#6610f2', '#e83e8c', '#6f42c1'
+                ]
+            }
+        }];
+
+        const despesasAnuaisPieLayout = {
+            showlegend: true,
+            legend: {
+                orientation: 'h',
+                yanchor: 'bottom',
+                y: -0.3,
+                xanchor: 'center',
+                x: 0.5
+            }
+        };
+
+        Plotly.newPlot('despesasAnualPieChart', despesasAnuaisPieData, despesasAnuaisPieLayout);
+
+        // Comparativo Trimestral
+        const trimestres = ['1º Trim', '2º Trim', '3º Trim', '4º Trim'];
+        const trimestralData = trimestres.map((trim, i) => {
+            const start = i * 3;
+            const end = start + 3;
+            return {
+                receitas: data.receita_vs_despesa.receitas.slice(start, end).reduce((a, b) => a + b, 0),
+                despesas: data.receita_vs_despesa.despesas.slice(start, end).reduce((a, b) => a + b, 0),
+                investimentos: (
+                    data.investimentos.reserva_emergencia.slice(start, end).reduce((a, b) => a + b, 0) +
+                    data.investimentos.investimentos.slice(start, end).reduce((a, b) => a + b, 0)
+                )
+            };
+        });
+
+        const trimestralChartData = [
+            {
+                x: trimestres,
+                y: trimestralData.map(d => d.receitas),
+                name: 'Receitas',
+                type: 'bar',
+                marker: { color: '#28a745' }
+            },
+            {
+                x: trimestres,
+                y: trimestralData.map(d => d.despesas),
+                name: 'Despesas',
+                type: 'bar',
+                marker: { color: '#dc3545' }
+            },
+            {
+                x: trimestres,
+                y: trimestralData.map(d => d.investimentos),
+                name: 'Investimentos',
+                type: 'bar',
+                marker: { color: '#17a2b8' }
+            }
+        ];
+
+        const trimestralLayout = {
+            barmode: 'group',
+            yaxis: { tickformat: 'R$,.0f' },
+            showlegend: true,
+            legend: {
+                orientation: 'h',
+                yanchor: 'bottom',
+                y: -0.3,
+                xanchor: 'center',
+                x: 0.5
+            }
+        };
+
+        Plotly.newPlot('comparativoTrimestralChart', trimestralChartData, trimestralLayout);
+
+        // Metas Anuais
+        const metasAnuaisData = Object.entries(data.metas_realizado).map(([categoria, valores]) => ({
+            type: 'indicator',
+            mode: 'gauge+number+delta',
+            value: Math.abs(valores.realizado),
+            delta: { reference: Math.abs(valores.meta) },
+            gauge: {
+                axis: { range: [0, Math.max(Math.abs(valores.meta), Math.abs(valores.realizado))] },
+                bar: { color: '#28a745' },
+                bgcolor: 'white',
+                borderwidth: 2,
+                bordercolor: '#ccc',
+                steps: [
+                    { range: [0, Math.abs(valores.meta)], color: '#e9ecef' }
+                ]
+            },
+            title: { text: categoria }
+        }));
+
+        const metasAnuaisLayout = {
+            grid: { rows: 1, columns: metasAnuaisData.length }
+        };
+
+        Plotly.newPlot('metasAnuaisChart', metasAnuaisData, metasAnuaisLayout);
+
+        // Cash Flow Anual
+        const cashFlowData = [{
+            type: 'waterfall',
+            orientation: 'v',
+            measure: [
+                'absolute', 'relative', 'relative',
+                'relative', 'total'
+            ],
+            x: [
+                'Receitas', 'Despesas Fixas', 'Despesas Variáveis',
+                'Investimentos', 'Saldo'
+            ],
+            y: [
+                data.cash_flow.receitas,
+                -data.cash_flow.despesas_fixas,
+                -data.cash_flow.despesas_variaveis,
+                data.cash_flow.investimentos,
+                data.cash_flow.receitas -
+                data.cash_flow.despesas_fixas -
+                data.cash_flow.despesas_variaveis +
+                data.cash_flow.investimentos
+            ],
+            connector: {
+                line: { color: 'rgb(63, 63, 63)' }
+            },
+            decreasing: { marker: { color: '#dc3545' } },
+            increasing: { marker: { color: '#28a745' } },
+            totals: { marker: { color: '#17a2b8' } }
+        }];
+
+        const cashFlowLayout = {
+            yaxis: { tickformat: 'R$,.0f' },
+            showlegend: false
+        };
+
+        Plotly.newPlot('cashFlowAnualChart', cashFlowData, cashFlowLayout);
+
+        // Projeção Anual
+        const projecaoData = [{
+            x: months,
+            y: data.projecao_mensal,
+            type: 'scatter',
+            line: { color: '#6f42c1', width: 3 },
+            fill: 'tozeroy'
+        }];
+
+        const projecaoLayout = {
+            yaxis: { tickformat: 'R$,.0f' },
+            showlegend: false
+        };
+
+        Plotly.newPlot('projecaoAnualChart', projecaoData, projecaoLayout);
+    }
+
+    // Função para exportar dashboard
+    window.exportDashboard = function(format) {
+        // TODO: Implementar exportação
+    }
+
+    // Preencher select de anos
+    function populateYearSelect() {
+        const select = document.getElementById('year');
+        const currentYear = new Date().getFullYear();
+        
+        for (let year = currentYear; year >= currentYear - 5; year--) {
+            const option = document.createElement('option');
+            option.value = year;
+            option.textContent = year;
+            if (year === currentYear) option.selected = true;
+            select.appendChild(option);
+        }
+    }
+
+    // Carregar dados iniciais
+    populateYearSelect();
+    
+    fetch('/api/dashboard/data?period=yearly')
+        .then(response => response.json())
+        .then(data => {
+            updateSummaryCards(data);
+            createCharts(data);
+        });
+
+    // Configurar formulário de filtro
+    document.getElementById('filterForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const year = document.getElementById('year').value;
+        
+        fetch(`/api/dashboard/data?period=yearly&start_date=${year}-01&end_date=${year}-12`)
+            .then(response => response.json())
+            .then(data => {
+                updateSummaryCards(data);
+                createCharts(data);
+            });
+    });
+
+    // Ajustar gráficos quando a janela for redimensionada
+    window.addEventListener('resize', function() {
+        const charts = [
+            'evolucaoAnualChart',
+            'despesasAnualPieChart',
+            'comparativoTrimestralChart',
+            'metasAnuaisChart',
+            'cashFlowAnualChart',
+            'projecaoAnualChart'
+        ];
+        
+        charts.forEach(chart => {
+            Plotly.Plots.resize(chart);
+        });
+    });
+});
+</script>
+{% endblock %}
+{% endblock %} 

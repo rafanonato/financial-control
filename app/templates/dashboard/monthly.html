@@ -1,0 +1,434 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Cabeçalho -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Dashboard Mensal</h2>
+        <div class="btn-group">
+            <button class="btn btn-outline-primary" onclick="exportDashboard('pdf')">
+                <i class="fas fa-file-pdf"></i> Exportar PDF
+            </button>
+            <button class="btn btn-outline-primary" onclick="exportDashboard('png')">
+                <i class="fas fa-file-image"></i> Exportar PNG
+            </button>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form id="filterForm" class="row g-3">
+                <div class="col-md-3">
+                    <label for="month" class="form-label">Mês</label>
+                    <select class="form-select" id="month" name="month">
+                        <!-- Meses serão preenchidos dinamicamente -->
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="year" class="form-label">Ano</label>
+                    <select class="form-select" id="year" name="year">
+                        <!-- Anos serão preenchidos dinamicamente -->
+                    </select>
+                </div>
+                <div class="col-md-6 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary">Atualizar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Cards de Resumo Mensal -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white h-100">
+                <div class="card-body">
+                    <h6 class="card-title">Receitas</h6>
+                    <h3 class="card-text" id="totalReceitas">R$ 0,00</h3>
+                    <small class="text-white-50">Total no mês</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-danger text-white h-100">
+                <div class="card-body">
+                    <h6 class="card-title">Despesas</h6>
+                    <h3 class="card-text" id="totalDespesas">R$ 0,00</h3>
+                    <small class="text-white-50">Total no mês</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white h-100">
+                <div class="card-body">
+                    <h6 class="card-title">Investimentos</h6>
+                    <h3 class="card-text" id="totalInvestimentos">R$ 0,00</h3>
+                    <small class="text-white-50">Total no mês</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white h-100">
+                <div class="card-body">
+                    <h6 class="card-title">Saving Rate</h6>
+                    <h3 class="card-text" id="savingRate">0%</h3>
+                    <small class="text-white-50">No mês</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Gráficos -->
+    <div class="row">
+        <!-- Receita vs. Despesa -->
+        <div class="col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Receita vs. Despesa</h5>
+                    <div class="chart-container">
+                        <div id="receitaDespesaChart"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Evolução do Fechamento Mensal -->
+        <div class="col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Evolução do Fechamento Mensal</h5>
+                    <div class="chart-container">
+                        <div id="fechamentoMensalChart"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Distribuição de Despesas por Categoria -->
+        <div class="col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Distribuição de Despesas por Categoria</h5>
+                    <div class="chart-container">
+                        <div id="despesasCategoriaChart"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Investimentos e Reservas -->
+        <div class="col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Investimentos e Reservas</h5>
+                    <div class="chart-container">
+                        <div id="investimentosReservasChart"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Metas vs. Realizado -->
+        <div class="col-md-12 mb-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Metas vs. Realizado</h5>
+                    <div class="chart-container">
+                        <div id="metasRealizadoChart"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Evolução da Taxa de Poupança -->
+        <div class="col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Evolução da Taxa de Poupança</h5>
+                    <div class="chart-container">
+                        <div id="taxaPoupancaChart"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Projeção Mensal -->
+        <div class="col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Projeção Mensal</h5>
+                    <div class="chart-container">
+                        <div id="projecaoMensalChart"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Scripts específicos para a página -->
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Função para formatar valores monetários
+    function formatCurrency(value) {
+        return new Intl.NumberFormat('pt-BR', {
+            style: 'currency',
+            currency: 'BRL'
+        }).format(value);
+    }
+
+    // Função para formatar percentuais
+    function formatPercentage(value) {
+        return new Intl.NumberFormat('pt-BR', {
+            style: 'percent',
+            minimumFractionDigits: 1,
+            maximumFractionDigits: 1
+        }).format(value / 100);
+    }
+
+    // Função para formatar mês
+    function formatMonth(monthStr) {
+        const [year, month] = monthStr.split('-');
+        const date = new Date(year, parseInt(month) - 1);
+        return date.toLocaleDateString('pt-BR', { month: 'long' });
+    }
+
+    // Função para atualizar os cards de resumo
+    function updateSummaryCards(data) {
+        document.getElementById('totalReceitas').textContent = formatCurrency(data.receita_vs_despesa.receitas);
+        document.getElementById('totalDespesas').textContent = formatCurrency(data.receita_vs_despesa.despesas);
+        document.getElementById('totalInvestimentos').textContent = formatCurrency(
+            data.investimentos.reserva_emergencia + data.investimentos.investimentos
+        );
+        document.getElementById('savingRate').textContent = formatPercentage(data.saving_rate);
+    }
+
+    // Função para criar os gráficos
+    function createCharts(data) {
+        // Receita vs. Despesa
+        const receitaDespesaData = [{
+            type: 'bar',
+            orientation: 'v',
+            x: ['Receitas', 'Despesas'],
+            y: [data.receita_vs_despesa.receitas, data.receita_vs_despesa.despesas],
+            marker: {
+                color: ['#28a745', '#dc3545']
+            }
+        }];
+
+        const receitaDespesaLayout = {
+            yaxis: { tickformat: 'R$,.0f' },
+            showlegend: false
+        };
+
+        Plotly.newPlot('receitaDespesaChart', receitaDespesaData, receitaDespesaLayout);
+
+        // Evolução do Fechamento Mensal
+        const fechamentoMensalData = [{
+            x: data.months.map(formatMonth),
+            y: data.fechamento_mensal,
+            type: 'scatter',
+            line: { color: '#17a2b8', width: 3 },
+            fill: 'tozeroy'
+        }];
+
+        const fechamentoMensalLayout = {
+            yaxis: { tickformat: 'R$,.0f' },
+            showlegend: false
+        };
+
+        Plotly.newPlot('fechamentoMensalChart', fechamentoMensalData, fechamentoMensalLayout);
+
+        // Distribuição de Despesas por Categoria
+        const despesasCategoriaData = [{
+            values: Object.values(data.despesas_categoria),
+            labels: Object.keys(data.despesas_categoria),
+            type: 'pie',
+            hole: 0.4,
+            marker: {
+                colors: [
+                    '#dc3545', '#fd7e14', '#ffc107', '#20c997',
+                    '#17a2b8', '#6610f2', '#e83e8c', '#6f42c1'
+                ]
+            }
+        }];
+
+        const despesasCategoriaLayout = {
+            showlegend: true,
+            legend: {
+                orientation: 'h',
+                yanchor: 'bottom',
+                y: -0.3,
+                xanchor: 'center',
+                x: 0.5
+            }
+        };
+
+        Plotly.newPlot('despesasCategoriaChart', despesasCategoriaData, despesasCategoriaLayout);
+
+        // Investimentos e Reservas
+        const investimentosReservasData = [{
+            type: 'bar',
+            orientation: 'v',
+            x: ['Reserva de Emergência', 'Investimentos'],
+            y: [data.investimentos.reserva_emergencia, data.investimentos.investimentos],
+            marker: {
+                color: ['#ffc107', '#28a745']
+            }
+        }];
+
+        const investimentosReservasLayout = {
+            yaxis: { tickformat: 'R$,.0f' },
+            showlegend: false
+        };
+
+        Plotly.newPlot('investimentosReservasChart', investimentosReservasData, investimentosReservasLayout);
+
+        // Metas vs. Realizado
+        const metasRealizadoData = Object.entries(data.metas_realizado).map(([categoria, valores]) => ({
+            type: 'indicator',
+            mode: 'gauge+number+delta',
+            value: Math.abs(valores.realizado),
+            delta: { reference: Math.abs(valores.meta) },
+            gauge: {
+                axis: { range: [0, Math.max(Math.abs(valores.meta), Math.abs(valores.realizado))] },
+                bar: { color: '#28a745' },
+                bgcolor: 'white',
+                borderwidth: 2,
+                bordercolor: '#ccc',
+                steps: [
+                    { range: [0, Math.abs(valores.meta)], color: '#e9ecef' }
+                ]
+            },
+            title: { text: categoria }
+        }));
+
+        const metasRealizadoLayout = {
+            grid: { rows: 1, columns: metasRealizadoData.length }
+        };
+
+        Plotly.newPlot('metasRealizadoChart', metasRealizadoData, metasRealizadoLayout);
+
+        // Evolução da Taxa de Poupança
+        const taxaPoupancaData = [{
+            x: data.months.map(formatMonth),
+            y: data.saving_rate_evolution,
+            type: 'scatter',
+            line: { color: '#6f42c1', width: 3 }
+        }];
+
+        const taxaPoupancaLayout = {
+            yaxis: {
+                tickformat: ',.1%',
+                range: [0, Math.max(...data.saving_rate_evolution) * 1.1]
+            },
+            showlegend: false
+        };
+
+        Plotly.newPlot('taxaPoupancaChart', taxaPoupancaData, taxaPoupancaLayout);
+
+        // Projeção Mensal
+        const projecaoMensalData = [{
+            x: ['Meta', 'Projeção', 'Realizado'],
+            y: [
+                data.projecao_mensal.meta,
+                data.projecao_mensal.projecao,
+                data.projecao_mensal.realizado
+            ],
+            type: 'bar',
+            marker: {
+                color: ['#ffc107', '#17a2b8', '#28a745']
+            }
+        }];
+
+        const projecaoMensalLayout = {
+            yaxis: { tickformat: 'R$,.0f' },
+            showlegend: false
+        };
+
+        Plotly.newPlot('projecaoMensalChart', projecaoMensalData, projecaoMensalLayout);
+    }
+
+    // Função para exportar dashboard
+    window.exportDashboard = function(format) {
+        // TODO: Implementar exportação
+    }
+
+    // Preencher selects de mês e ano
+    function populateSelects() {
+        const monthSelect = document.getElementById('month');
+        const yearSelect = document.getElementById('year');
+        const currentDate = new Date();
+        const currentYear = currentDate.getFullYear();
+        const currentMonth = currentDate.getMonth();
+
+        // Preencher meses
+        const months = [
+            'Janeiro', 'Fevereiro', 'Março', 'Abril',
+            'Maio', 'Junho', 'Julho', 'Agosto',
+            'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+        ];
+
+        months.forEach((month, index) => {
+            const option = document.createElement('option');
+            option.value = index + 1;
+            option.textContent = month;
+            if (index === currentMonth) option.selected = true;
+            monthSelect.appendChild(option);
+        });
+
+        // Preencher anos
+        for (let year = currentYear; year >= currentYear - 5; year--) {
+            const option = document.createElement('option');
+            option.value = year;
+            option.textContent = year;
+            if (year === currentYear) option.selected = true;
+            yearSelect.appendChild(option);
+        }
+    }
+
+    // Carregar dados iniciais
+    populateSelects();
+    
+    fetch('/api/dashboard/data?period=monthly')
+        .then(response => response.json())
+        .then(data => {
+            updateSummaryCards(data);
+            createCharts(data);
+        });
+
+    // Configurar formulário de filtro
+    document.getElementById('filterForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const month = document.getElementById('month').value.padStart(2, '0');
+        const year = document.getElementById('year').value;
+        
+        fetch(`/api/dashboard/data?period=monthly&start_date=${year}-${month}&end_date=${year}-${month}`)
+            .then(response => response.json())
+            .then(data => {
+                updateSummaryCards(data);
+                createCharts(data);
+            });
+    });
+
+    // Ajustar gráficos quando a janela for redimensionada
+    window.addEventListener('resize', function() {
+        const charts = [
+            'receitaDespesaChart',
+            'fechamentoMensalChart',
+            'despesasCategoriaChart',
+            'investimentosReservasChart',
+            'metasRealizadoChart',
+            'taxaPoupancaChart',
+            'projecaoMensalChart'
+        ];
+        
+        charts.forEach(chart => {
+            Plotly.Plots.resize(chart);
+        });
+    });
+});
+</script>
+{% endblock %}
+{% endblock %} 
