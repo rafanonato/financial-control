@@ -1,38 +1,131 @@
 {% extends "base.html" %}
 
 {% block content %}
+<style>
+    .financial-flow-table {
+        font-size: 0.9rem;
+    }
+    
+    .financial-flow-table th {
+        background-color: #f8f9fa;
+        position: sticky;
+        top: 0;
+        z-index: 1;
+    }
+    
+    .financial-flow-table td {
+        white-space: nowrap;
+        cursor: pointer;
+        transition: background-color 0.2s;
+    }
+    
+    .financial-flow-table td:hover {
+        background-color: rgba(0,0,0,0.05);
+    }
+    
+    .financial-flow-table tr[data-type="section_header"] {
+        background-color: #e9ecef;
+        font-weight: bold;
+    }
+    
+    .financial-flow-table tr[data-type="subtotal"] {
+        background-color: #f8f9fa;
+        font-weight: bold;
+        border-top: 2px solid #dee2e6;
+    }
+    
+    .financial-flow-table tr[data-type="highlight"] {
+        background-color: #cfe2ff;
+        font-weight: bold;
+    }
+    
+    .financial-flow-table tr[data-type="total"] {
+        background-color: #e2e3e5;
+        font-weight: bold;
+    }
+    
+    .financial-flow-table .text-success {
+        color: #198754 !important;
+    }
+    
+    .financial-flow-table .text-danger {
+        color: #dc3545 !important;
+    }
+    
+    .chart-container {
+        height: 400px;
+        margin-bottom: 2rem;
+    }
+    
+    .btn-group .btn {
+        padding: 0.375rem 0.75rem;
+    }
+    
+    .value-cell {
+        position: relative;
+    }
+    
+    .value-cell i {
+        position: absolute;
+        right: 5px;
+        top: 50%;
+        transform: translateY(-50%);
+        opacity: 0.5;
+    }
+    
+    .modal-body .list-group-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .filter-buttons {
+        gap: 0.5rem;
+    }
+</style>
+
 <div class="container-fluid">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2>Fluxo Financeiro Mensal</h2>
+        <h2><i class="fas fa-chart-line me-2"></i>Fluxo Financeiro Mensal</h2>
         <div class="btn-group">
             <button class="btn btn-outline-primary" onclick="exportData('excel')">
-                <i class="fas fa-file-excel"></i> Exportar Excel
+                <i class="fas fa-file-excel me-1"></i> Excel
             </button>
             <button class="btn btn-outline-primary" onclick="exportData('pdf')">
-                <i class="fas fa-file-pdf"></i> Exportar PDF
+                <i class="fas fa-file-pdf me-1"></i> PDF
             </button>
         </div>
     </div>
     
     <!-- Filtros -->
-    <div class="card mb-4">
+    <div class="card mb-4 shadow-sm">
         <div class="card-body">
             <form id="filterForm" class="row g-3">
-                <div class="col-md-4">
-                    <label for="startDate" class="form-label">Data Inicial</label>
+                <div class="col-md-3">
+                    <label for="startDate" class="form-label"><i class="fas fa-calendar-alt me-1"></i>Data Inicial</label>
                     <input type="month" class="form-control" id="startDate" name="startDate">
                 </div>
-                <div class="col-md-4">
-                    <label for="endDate" class="form-label">Data Final</label>
+                <div class="col-md-3">
+                    <label for="endDate" class="form-label"><i class="fas fa-calendar-alt me-1"></i>Data Final</label>
                     <input type="month" class="form-control" id="endDate" name="endDate">
                 </div>
-                <div class="col-md-4 d-flex align-items-end">
-                    <div class="btn-group">
-                        <button type="button" class="btn btn-outline-secondary" onclick="setFilter('year')">Ano</button>
-                        <button type="button" class="btn btn-outline-secondary" onclick="setFilter('semester1')">1º Semestre</button>
-                        <button type="button" class="btn btn-outline-secondary" onclick="setFilter('semester2')">2º Semestre</button>
-                        <button type="button" class="btn btn-outline-secondary" onclick="setFilter('quarter')">Trimestre</button>
-                        <button type="submit" class="btn btn-primary">Atualizar</button>
+                <div class="col-md-6 d-flex align-items-end">
+                    <div class="btn-group filter-buttons w-100">
+                        <button type="button" class="btn btn-outline-secondary" onclick="setFilter('year')">
+                            <i class="fas fa-calendar me-1"></i>Ano
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary" onclick="setFilter('semester1')">
+                            <i class="fas fa-calendar-alt me-1"></i>1º Semestre
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary" onclick="setFilter('semester2')">
+                            <i class="fas fa-calendar-alt me-1"></i>2º Semestre
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary" onclick="setFilter('quarter')">
+                            <i class="fas fa-calendar-week me-1"></i>Trimestre
+                        </button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-sync-alt me-1"></i>Atualizar
+                        </button>
                     </div>
                 </div>
             </form>
@@ -40,13 +133,13 @@
     </div>
 
     <!-- Tabela de Fluxo Financeiro -->
-    <div class="card mb-4">
+    <div class="card mb-4 shadow-sm">
         <div class="card-body">
             <div class="table-responsive">
                 <table class="table table-bordered table-hover financial-flow-table" id="financialFlowTable">
                     <thead>
                         <tr>
-                            <th>Categoria</th>
+                            <th style="min-width: 200px;">Categoria</th>
                             <!-- Meses serão inseridos dinamicamente via JavaScript -->
                         </tr>
                     </thead>
@@ -61,9 +154,9 @@
     <!-- Gráficos -->
     <div class="row">
         <div class="col-md-6">
-            <div class="card">
+            <div class="card shadow-sm">
                 <div class="card-body">
-                    <h5 class="card-title">Evolução Mensal</h5>
+                    <h5 class="card-title"><i class="fas fa-chart-line me-2"></i>Evolução Mensal</h5>
                     <div class="chart-container">
                         <div id="evolutionChart"></div>
                     </div>
@@ -71,9 +164,9 @@
             </div>
         </div>
         <div class="col-md-6">
-            <div class="card">
+            <div class="card shadow-sm">
                 <div class="card-body">
-                    <h5 class="card-title">Composição Mensal</h5>
+                    <h5 class="card-title"><i class="fas fa-chart-bar me-2"></i>Composição Mensal</h5>
                     <div class="chart-container">
                         <div id="compositionChart"></div>
                     </div>
@@ -87,8 +180,8 @@
 <div class="modal fade" id="editModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Detalhes</h5>
+            <div class="modal-header bg-light">
+                <h5 class="modal-title"><i class="fas fa-info-circle me-2"></i>Detalhes</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
@@ -128,7 +221,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const headerRow = table.querySelector('thead tr');
         
         // Limpar conteúdo existente
-        headerRow.innerHTML = '<th>Categoria</th>';
+        headerRow.innerHTML = '<th style="min-width: 200px;">Categoria</th>';
         tbody.innerHTML = '';
         
         // Adicionar colunas de meses
@@ -136,6 +229,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const th = document.createElement('th');
             const date = new Date(month + '-01');
             th.textContent = date.toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' });
+            th.style.minWidth = '120px';
             headerRow.appendChild(th);
         });
 
@@ -146,29 +240,35 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Adicionar célula de categoria
             const tdCategory = document.createElement('td');
-            tdCategory.textContent = rowData.name;
+            tdCategory.innerHTML = `${getRowIcon(rowData.type)} ${rowData.name}`;
             tr.appendChild(tdCategory);
 
             // Adicionar células de valores
             rowData.values.forEach((value, index) => {
                 const td = document.createElement('td');
+                td.classList.add('value-cell');
                 
                 if (rowData.type === 'percentage') {
                     td.textContent = formatPercentage(value);
                     td.classList.add(value > 100 ? 'text-danger' : 'text-success');
+                    td.innerHTML += ' <i class="fas fa-percent"></i>';
                 } else if (rowData.type === 'spacer') {
                     td.innerHTML = '&nbsp;';
                 } else {
                     td.textContent = formatCurrency(value);
-                    if (value < 0) td.classList.add('text-danger');
-                    if (value > 0 && !['section_header', 'subtotal'].includes(rowData.type)) {
+                    if (value < 0) {
+                        td.classList.add('text-danger');
+                        td.innerHTML += ' <i class="fas fa-arrow-down"></i>';
+                    } else if (value > 0 && !['section_header', 'subtotal'].includes(rowData.type)) {
                         td.classList.add('text-success');
+                        td.innerHTML += ' <i class="fas fa-arrow-up"></i>';
                     }
                 }
 
                 // Adicionar detalhes se disponíveis
                 if (rowData.details) {
                     td.setAttribute('data-has-details', 'true');
+                    td.style.cursor = 'pointer';
                     td.addEventListener('click', () => showDetails(rowData, index, data.months[index]));
                 }
 
@@ -179,6 +279,21 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    // Função para obter ícone baseado no tipo da linha
+    function getRowIcon(type) {
+        const icons = {
+            'section_header': '<i class="fas fa-folder me-2"></i>',
+            'income_item': '<i class="fas fa-plus-circle me-2 text-success"></i>',
+            'expense_item': '<i class="fas fa-minus-circle me-2 text-danger"></i>',
+            'investment': '<i class="fas fa-chart-line me-2 text-primary"></i>',
+            'saving': '<i class="fas fa-piggy-bank me-2 text-info"></i>',
+            'total': '<i class="fas fa-calculator me-2"></i>',
+            'highlight': '<i class="fas fa-star me-2 text-warning"></i>',
+            'percentage': '<i class="fas fa-percent me-2"></i>'
+        };
+        return icons[type] || '';
+    }
+
     // Função para mostrar detalhes em modal
     function showDetails(rowData, monthIndex, month) {
         const modal = new bootstrap.Modal(document.getElementById('editModal'));
@@ -186,11 +301,17 @@ document.addEventListener('DOMContentLoaded', function() {
         const date = new Date(month + '-01');
         const monthName = date.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
         
-        let content = `<h6>${rowData.name} - ${monthName}</h6><hr>`;
+        let content = `
+            <div class="alert alert-info">
+                <h6 class="mb-0">
+                    ${getRowIcon(rowData.type)} ${rowData.name}
+                    <small class="text-muted ms-2">${monthName}</small>
+                </h6>
+            </div>`;
         
         if (rowData.details) {
             let total = 0;
-            content += '<ul class="list-group">';
+            content += '<div class="list-group list-group-flush">';
             
             // Ordenar detalhes por valor (maior para menor)
             const sortedDetails = Object.entries(rowData.details)
@@ -199,19 +320,28 @@ document.addEventListener('DOMContentLoaded', function() {
 
             sortedDetails.forEach(({ category, value }) => {
                 total += value;
+                const valueClass = value < 0 ? 'text-danger' : 'text-success';
+                const icon = value < 0 ? 'fa-arrow-down' : 'fa-arrow-up';
+                
                 content += `
-                    <li class="list-group-item">
-                        <span class="category">${category}</span>
-                        <span class="value ${value < 0 ? 'text-danger' : 'text-success'}">${formatCurrency(value)}</span>
-                    </li>`;
+                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                        <span>${category}</span>
+                        <span class="${valueClass}">
+                            ${formatCurrency(value)}
+                            <i class="fas ${icon} ms-1"></i>
+                        </span>
+                    </div>`;
             });
 
             content += `
-                <li class="list-group-item fw-bold">
-                    <span class="category">Total</span>
-                    <span class="value ${total < 0 ? 'text-danger' : 'text-success'}">${formatCurrency(total)}</span>
-                </li>`;
-            content += '</ul>';
+                <div class="list-group-item d-flex justify-content-between align-items-center fw-bold bg-light">
+                    <span>Total</span>
+                    <span class="${total < 0 ? 'text-danger' : 'text-success'}">
+                        ${formatCurrency(total)}
+                        <i class="fas ${total < 0 ? 'fa-arrow-down' : 'fa-arrow-up'} ms-1"></i>
+                    </span>
+                </div>`;
+            content += '</div>';
         }
 
         detailsContent.innerHTML = content;
@@ -233,28 +363,32 @@ document.addEventListener('DOMContentLoaded', function() {
                 y: data.rows.find(row => row.name === 'Total Entradas').values,
                 type: 'scatter',
                 name: 'Entradas',
-                line: { color: '#198754', width: 3 }
+                line: { color: '#198754', width: 3 },
+                hovertemplate: '%{y:$.2f}<extra>Entradas</extra>'
             },
             {
                 x: months,
                 y: data.rows.find(row => row.name === 'Total Saídas').values,
                 type: 'scatter',
                 name: 'Saídas',
-                line: { color: '#dc3545', width: 3 }
+                line: { color: '#dc3545', width: 3 },
+                hovertemplate: '%{y:$.2f}<extra>Saídas</extra>'
             },
             {
                 x: months,
                 y: data.rows.find(row => row.name === 'Fechamento Mensal').values,
                 type: 'scatter',
                 name: 'Fechamento',
-                line: { color: '#0d6efd', width: 3 }
+                line: { color: '#0d6efd', width: 3 },
+                hovertemplate: '%{y:$.2f}<extra>Fechamento</extra>'
             },
             {
                 x: months,
                 y: data.rows.find(row => row.name === 'Projeção Mensal (Saving+Invest)').values,
                 type: 'scatter',
                 name: 'Projeção',
-                line: { color: '#6610f2', width: 3, dash: 'dot' }
+                line: { color: '#6610f2', width: 3, dash: 'dot' },
+                hovertemplate: '%{y:$.2f}<extra>Projeção</extra>'
             }
         ];
 
@@ -274,10 +408,19 @@ document.addEventListener('DOMContentLoaded', function() {
                 xanchor: 'center',
                 x: 0.5
             },
-            margin: { t: 30 }
+            margin: { t: 30 },
+            plot_bgcolor: '#ffffff',
+            paper_bgcolor: '#ffffff'
         };
 
-        Plotly.newPlot('evolutionChart', evolutionTraces, evolutionLayout, { responsive: true });
+        const config = {
+            responsive: true,
+            displayModeBar: true,
+            displaylogo: false,
+            modeBarButtonsToRemove: ['lasso2d', 'select2d']
+        };
+
+        Plotly.newPlot('evolutionChart', evolutionTraces, evolutionLayout, config);
 
         // Gráfico de composição
         const receitas = data.rows.find(row => row.name === 'SUBTOTAL RECEITAS').values;
@@ -290,21 +433,24 @@ document.addEventListener('DOMContentLoaded', function() {
                 y: receitas,
                 type: 'bar',
                 name: 'Receitas',
-                marker: { color: '#198754' }
+                marker: { color: '#198754' },
+                hovertemplate: '%{y:$.2f}<extra>Receitas</extra>'
             },
             {
                 x: months,
                 y: investimentos,
                 type: 'bar',
                 name: 'Investimentos',
-                marker: { color: '#0d6efd' }
+                marker: { color: '#0d6efd' },
+                hovertemplate: '%{y:$.2f}<extra>Investimentos</extra>'
             },
             {
                 x: months,
                 y: despesas,
                 type: 'bar',
                 name: 'Despesas',
-                marker: { color: '#dc3545' }
+                marker: { color: '#dc3545' },
+                hovertemplate: '%{y:$.2f}<extra>Despesas</extra>'
             }
         ];
 
@@ -325,10 +471,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 xanchor: 'center',
                 x: 0.5
             },
-            margin: { t: 30 }
+            margin: { t: 30 },
+            plot_bgcolor: '#ffffff',
+            paper_bgcolor: '#ffffff'
         };
 
-        Plotly.newPlot('compositionChart', compositionTraces, compositionLayout, { responsive: true });
+        Plotly.newPlot('compositionChart', compositionTraces, compositionLayout, config);
     }
 
     // Função para exportar dados
